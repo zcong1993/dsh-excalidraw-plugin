@@ -9,6 +9,10 @@ The natural-language entry lives in the independent **`excalidraw` skill** at
 limited to the native transport: three tools, two diagnostic commands, the source/transaction
 service, and the browser canvas.
 
+## Development standards
+
+The engineering contract for this repository — layering, file/version rules, flush protocol, client state machine, skill conventions, security, build, testing, and the anti-pattern list — lives in [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
+
 ## What is in the box
 
 | Path | Responsibility |
