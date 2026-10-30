@@ -956,9 +956,16 @@ function CanvasBody(props) {
     'data-editable': editable ? 'true' : 'false',
     'data-working': working ? 'true' : 'false',
   },
-    h('div', { className: 'dsh-excalidraw-toolbar' },
-      h('div', { className: 'dsh-excalidraw-toolbar-title' },
-        h('span', { className: 'dsh-excalidraw-dot', 'data-status': status, 'aria-hidden': 'true' }),
+    h('div', {
+      className: 'dsh-excalidraw-toolbar',
+      'data-locked': working && !editable ? 'true' : 'false',
+    },
+      h('div', { className: 'dsh-excalidraw-toolbar-title', role: 'status' },
+        h('span', {
+          className: 'dsh-excalidraw-dot',
+          'data-status': working && !editable ? 'locked' : status,
+          'aria-hidden': 'true',
+        }),
         h('span', null, editable ? statusLabel : (working ? t('locked') : t('readOnly'))),
       ),
       h('div', { className: 'dsh-excalidraw-actions' },
@@ -1001,7 +1008,6 @@ function CanvasBody(props) {
         }, t('reload')),
       ),
     ),
-    working ? h('div', { className: 'dsh-excalidraw-banner', 'data-tone': 'locked', role: 'status' }, t('locked')) : null,
     draftInfo !== undefined
       ? h('div', { className: 'dsh-excalidraw-banner', 'data-tone': draftInfo.matches ? 'info' : 'warn', role: 'status' },
         h('div', null,

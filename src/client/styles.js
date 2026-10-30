@@ -21,6 +21,9 @@ export const CLIENT_CSS = `
   background: var(--dsw-alias-bg-layer-1, transparent);
   flex: none;
 }
+.dsh-excalidraw-toolbar[data-locked="true"] {
+  background: var(--dsw-alias-fill-warning, rgba(191,135,0,.12));
+}
 .dsh-excalidraw-toolbar-title {
   display: flex;
   align-items: center;
@@ -87,7 +90,6 @@ export const CLIENT_CSS = `
 .dsh-excalidraw-banner[data-tone="info"] { background: var(--dsw-alias-fill-info, rgba(9,105,218,.08)); }
 .dsh-excalidraw-banner[data-tone="warn"] { background: var(--dsw-alias-fill-warning, rgba(191,135,0,.12)); }
 .dsh-excalidraw-banner[data-tone="danger"] { background: var(--dsw-alias-fill-danger, rgba(207,34,46,.1)); }
-.dsh-excalidraw-banner[data-tone="locked"] { background: var(--dsw-alias-fill-warning, rgba(191,135,0,.12)); }
 .dsh-excalidraw-canvas {
   position: relative;
   flex: 1;
