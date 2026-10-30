@@ -1,0 +1,54 @@
+{
+  "name": "@local/dsh-excalidraw-preview",
+  "version": "0.3.9",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "dsh": "0.2.1-rc.5"
+  },
+  "exports": {
+    ".": "./lib/host.js",
+    "./client": "./lib/client.js",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg"
+  },
+  "files": [
+    "lib",
+    "locale",
+    "icon.svg",
+    "cordis.patch.yml"
+  ],
+  "dependencies": {
+    "zod": "4.1.12"
+  },
+  "devDependencies": {
+    "@excalidraw/excalidraw": "0.18.0",
+    "esbuild": "0.25.12",
+    "postcss": "8.5.6",
+    "postcss-selector-parser": "7.1.0",
+    "happy-dom": "21.0.4"
+  },
+  "scripts": {
+    "test": "bun test",
+    "build:canvas": "bun build-library.ts",
+    "build:host": "bun build-host.ts",
+    "build": "bun build:canvas && bun build:host"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-sidebar-documentpreview",
+        "@deepseek-ai/dsh-client-ui-conversation",
+        "@deepseek-ai/dsh-client-ui-session",
+        "@deepseek-ai/dsh-client-locale",
+        "@deepseek-ai/dsh-client-connection",
+        "@deepseek-ai/dsh-api-remotes"
+      ]
+    }
+  }
+}

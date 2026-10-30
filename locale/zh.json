@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Excalidraw 画布",
+    "description": "用一句话生成官方 Excalidraw 图，在右侧画布预览、编辑、自动保存，并导出 PNG/SVG。"
+  }
+}
