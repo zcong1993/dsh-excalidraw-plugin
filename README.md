@@ -50,6 +50,10 @@ The skill instructs the agent to:
 2. `excalidraw_preview` to open the canvas;
 3. `excalidraw_export` after the canvas is connected.
 
+The right-sidebar toolbar also has an `导出` menu (PNG 2× / PNG 3× / SVG). It exports exactly what
+the page shows — including edits that are not committed yet — straight to a browser download, and
+does not create a Host export task or save an attachment; that path stays with `excalidraw_export`.
+
 ## Native tool contract
 
 ### `excalidraw_scene`

@@ -24,6 +24,42 @@ export const CLIENT_CSS = `
 .dsh-excalidraw-toolbar[data-locked="true"] {
   background: var(--dsw-alias-fill-warning, rgba(191,135,0,.12));
 }
+.dsh-excalidraw-export { position: relative; }
+.dsh-excalidraw-export > button[aria-expanded="true"] {
+  background: var(--dsw-alias-bg-layer-2, rgba(127,127,127,.08));
+}
+.dsh-excalidraw-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 96px;
+  padding: 4px;
+  border: 0.5px solid var(--dsw-alias-border-l3, rgba(127,127,127,.35));
+  border-radius: var(--dsw-radius-md, 6px);
+  background: var(--dsw-alias-bg-base, #fff);
+  box-shadow: 0 6px 20px rgba(0,0,0,.12);
+}
+.dsh-excalidraw-menu button {
+  appearance: none;
+  border: 0;
+  border-radius: var(--dsw-radius-sm, 4px);
+  background: transparent;
+  color: var(--dsw-alias-label-primary, #1f2328);
+  font: inherit;
+  font-size: 12px;
+  line-height: 18px;
+  padding: 3px 8px;
+  text-align: left;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.dsh-excalidraw-menu button:hover {
+  background: var(--dsw-alias-bg-layer-2, rgba(127,127,127,.08));
+}
 .dsh-excalidraw-toolbar-title {
   display: flex;
   align-items: center;

@@ -42,6 +42,8 @@ const zh = {
   exporting: '正在导出…',
   exportingHint: '官方渲染器正在绘制整张画布',
   downloadExport: '下载导出文件',
+  export: '导出',
+  exportUnavailable: '画布尚未就绪，暂时无法导出',
   cancel: '取消',
   empty: '这张图还没有可见元素',
   reload: '重新加载',
@@ -81,6 +83,8 @@ const en = {
   exporting: 'Exporting…',
   exportingHint: 'The official renderer is drawing the whole canvas',
   downloadExport: 'Download exported file',
+  export: 'Export',
+  exportUnavailable: 'The canvas is not ready to export yet',
   cancel: 'Cancel',
   empty: 'This diagram has no visible elements',
   reload: 'Reload',
@@ -291,6 +295,7 @@ function CanvasBody(props) {
   const [draftTooLarge, setDraftTooLarge] = React.useState(false)
   const [conflict, setConflict] = React.useState(undefined)
   const [exportState, setExportState] = React.useState(undefined)
+  const [exportMenuOpen, setExportMenuOpen] = React.useState(false)
   const [theme, setTheme] = React.useState(themeStore.get())
   const [reloadTick, setReloadTick] = React.useState(0)
 
@@ -319,6 +324,7 @@ function CanvasBody(props) {
   const mountedRef = React.useRef(true)
   const lastRectRef = React.useRef(undefined)
   const exportInFlightRef = React.useRef(new Set())
+  const exportMenuRef = React.useRef(null)
   const bootstrapRef = React.useRef(false)
   const lastRevisionRef = React.useRef(undefined)
 
@@ -653,6 +659,49 @@ function CanvasBody(props) {
       exportInFlightRef.current.delete(task.taskId)
     }
   }, [renderExport])
+
+  /**
+   * Export exactly what the page currently shows, including edits that have not
+   * been committed yet, and hand the file straight to the browser download.
+   */
+  const exportCurrent = React.useCallback(async (format, scale) => {
+    setExportMenuOpen(false)
+    const excalidraw = excalidrawApiRef.current
+    if (excalidraw === undefined) {
+      setExportState({ kind: 'failed', message: t('exportUnavailable') })
+      return
+    }
+    setExportState({ kind: 'working' })
+    try {
+      const rendered = await renderExport({
+        document: {
+          elements: excalidraw.getSceneElements(),
+          files: excalidraw.getFiles(),
+          appState: excalidraw.getAppState(),
+        },
+        path: path ?? 'canvas.excalidraw',
+        format,
+        scale,
+        transparent: false,
+      })
+      triggerDownload(rendered.blob, rendered.name)
+      setExportState({ kind: 'done', name: rendered.name })
+    } catch (error) {
+      setExportState({ kind: 'failed', message: error instanceof Error ? error.message : String(error) })
+    }
+  }, [path, renderExport, t])
+
+  React.useEffect(() => {
+    if (!exportMenuOpen) return undefined
+    // React can flush this effect before the opening click finishes bubbling,
+    // so ignore clicks that land inside the control that owns the menu.
+    const onDocumentClick = (event) => {
+      if (exportMenuRef.current?.contains(event.target)) return
+      setExportMenuOpen(false)
+    }
+    document.addEventListener('click', onDocumentClick)
+    return () => document.removeEventListener('click', onDocumentClick)
+  }, [exportMenuOpen])
 
   const poll = React.useCallback(async () => {
     if (pollingRef.current || apiRef.current === undefined || !mountedRef.current) return
@@ -1006,6 +1055,22 @@ function CanvasBody(props) {
             void refreshFromHost()
           },
         }, t('reload')),
+        h('div', { className: 'dsh-excalidraw-export', ref: exportMenuRef },
+          h('button', {
+            type: 'button',
+            className: 'dsh-excalidraw-button',
+            'aria-haspopup': 'menu',
+            'aria-expanded': exportMenuOpen ? 'true' : 'false',
+            onClick: () => setExportMenuOpen((value) => !value),
+          }, t('export')),
+          exportMenuOpen
+            ? h('div', { className: 'dsh-excalidraw-menu', role: 'menu' },
+              h('button', { type: 'button', role: 'menuitem', onClick: () => void exportCurrent('png', 2) }, 'PNG 2×'),
+              h('button', { type: 'button', role: 'menuitem', onClick: () => void exportCurrent('png', 3) }, 'PNG 3×'),
+              h('button', { type: 'button', role: 'menuitem', onClick: () => void exportCurrent('svg', 1) }, 'SVG'),
+            )
+            : null,
+        ),
       ),
     ),
     draftInfo !== undefined
@@ -1048,7 +1113,7 @@ function CanvasBody(props) {
           : exportState.kind === 'done'
             ? h('div', { className: 'dsh-excalidraw-actions' },
               h('span', null, `${t('exported')}: ${exportState.name}`),
-              h('a', {
+              exportState.url === undefined ? null : h('a', {
                 className: 'dsh-excalidraw-button',
                 href: exportState.url,
                 target: '_blank',
