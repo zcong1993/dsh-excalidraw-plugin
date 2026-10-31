@@ -258,14 +258,14 @@ loading → ready(read-only) → editing → saving → saved
 ## 6. Skill 规范
 
 - 自然语言入口由独立 skill 承担，插件不再注册 `/excalidraw` command。
-- Skill 位于 `.dsh/skills/excalidraw/SKILL.md`，`user-invocable: true`，description 同时覆盖中英文触发词。
+- Skill 位于 `.dsh/skills/excalidraw/SKILL.md`，`user-invocable: true`、`disable-model-invocation: true`：只有用户显式触发才加载，模型不自动调用；`splitSkillSource` 把这个 frontmatter 映射成注册时的 `modelInvocable: false`。description 同时覆盖中英文触发词。
 - Skill 只写“如何工作”和“何时用哪个工具”，不复制完整工具 schema，不复制插件实现细节。
 - Skill 必须要求：
   - 不打印原始 JSON；
   - 创建用 `create`，修改用 `begin → update → end`；
   - 多候选图先问；
   - 用户编辑后先读最新 baseline；
-  - 导出前先预览；
+  - 只有用户明确要求才导出（导出会弹下载/保存对话框），且导出前先预览；
   - 空图/超限/断线明确失败。
 - 工具不可用时，Skill 告诉用户启用插件，不绕道普通文件写入。
 - Host 启动时用 `ctx.skills.register()` 注册同一份 SKILL.md（构建时内联到 `lib/host.js`），使 npm 安装无需手动复制；项目级同名 skill 优先，可用于覆盖。

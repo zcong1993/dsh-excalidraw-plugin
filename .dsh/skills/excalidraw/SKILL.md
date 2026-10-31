@@ -3,7 +3,7 @@ name: excalidraw
 description: 在 DSH 右侧画布创建、读取、修改并导出官方 Excalidraw 图。当用户要求画架构图、流程图、时序图、思维导图、线框草图，提到 Excalidraw 或 .excalidraw 文件，或要求把现有图导出为 PNG/SVG 时使用；即使用户没有明确说“Excalidraw”，只要目标是可编辑的图，也应使用本 skill。Use this skill whenever the user wants to draw, revise, inspect, or export an editable diagram, architecture chart, flow, mind map, or wireframe, even when they do not name Excalidraw.
 whenToUse: 用户说“画一个…”“把这张图改成…”“导出为 PNG/SVG”，或提到现有 .excalidraw 文件时。
 user-invocable: true
-disable-model-invocation: false
+disable-model-invocation: true
 ---
 
 # Excalidraw 绘图
@@ -19,6 +19,7 @@ disable-model-invocation: false
 - 源文件是唯一事实。不要给用户打印原始 JSON；用一句话说明已创建/修改了什么，并把画布打开给用户看。
 - 路径相对当前 Session 工作目录，必须以 `.excalidraw` 结尾。创建使用 `create`，目标必须不存在；修改使用 `begin → update → end`，不要无条件覆盖。
 - 用户手动编辑后，先读最新基线再改；不要根据旧摘要覆盖用户的新位置或新文字。
+- **不要擅自导出**。导出会弹下载 / 保存对话框，只在用户明确要求时执行；改完图默认停在“已保存”，把是否导出留给用户决定。
 - 一张图一个页面。若存在多个候选 `.excalidraw` 且用户没有指明目标，先问用户，不要凭历史猜测。
 
 ## 工作流
@@ -112,12 +113,17 @@ excalidraw_scene {
 
 ### 5. 导出
 
-先确保画布已打开，再调用：
+**只有用户明确要求导出时才调用**（“导出成 PNG”“给我一个 SVG”“发我一张图”这类）。不要因为“顺便”“验收”“检查效果”就去导出：导出会触发浏览器下载 / 保存弹窗，打断用户，体验很差。
+
+用户没有要求时，改完图就停下，让用户自己决定要不要导出。
+
+导出前先确保画布已打开：
 
 ```text
 excalidraw_export { path: "<name>.excalidraw", format: "png", scale: 2, transparent: false }
 ```
 
+- 一次请求只导出用户要的格式和尺寸，不要顺带导出多种。
 - PNG 默认 2×，可用 1/2/3；SVG 为矢量并内嵌字体。
 - 导出的是整张图，不是视口截图；空图、断线、超限会明确失败。
 - 成功结果包含文件附件和 60 秒有效的下载链接。告诉用户已导出，不要声称未返回的附件已保存。

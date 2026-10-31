@@ -85,7 +85,8 @@ pnpm install   # 每个 worktree 独立 node_modules，不能复用主工作区�
 - 预览必须聚焦已有 tab，禁止 `{ revealIfOpened: false }`。
 
 **Skill**
-- Skill 位于 `.dsh/skills/excalidraw/SKILL.md`，`user-invocable: true`；Host 用 `ctx.skills.register()` 注册内联副本，项目级同名 skill 优先。
+- Skill 位于 `.dsh/skills/excalidraw/SKILL.md`，`user-invocable: true`、`disable-model-invocation: true`（只在用户显式触发时加载）；Host 用 `ctx.skills.register()` 注册内联副本，项目级同名 skill 优先。
+- 导出只能由用户明确要求触发；插件不主动导出，避免弹下载/保存对话框。
 - 插件不注册 `/excalidraw` 命令，只保留 `/excalidraw-scene`、`/excalidraw-export` 两个诊断命令。
 
 **资源**

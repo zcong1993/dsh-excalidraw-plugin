@@ -20,7 +20,7 @@ export function applySkill(ctx) {
       ...(skill.whenToUse === undefined ? {} : { whenToUse: skill.whenToUse }),
       source: 'runtime',
       content: skill.body,
-      invocation: { modelInvocable: true, userInvocable: true },
+      invocation: { modelInvocable: skill.modelInvocable ?? true, userInvocable: true },
       resourceBase: RESOURCE_BASE,
     })
   }, 'excalidraw: embedded skill'))

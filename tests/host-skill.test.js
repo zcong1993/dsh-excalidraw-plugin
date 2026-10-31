@@ -18,4 +18,11 @@ describe('embedded skill source', () => {
     const skill = splitSkillSource('# Title\n\nbody')
     expect(skill).toEqual({ description: undefined, whenToUse: undefined, body: '# Title\n\nbody' })
   })
+
+  test('maps disable-model-invocation to modelInvocable', () => {
+    expect(splitSkillSource(SOURCE).modelInvocable).toBe(false)
+    expect(splitSkillSource('---\ndisable-model-invocation: true\n---\nbody').modelInvocable).toBe(false)
+    expect(splitSkillSource('---\ndisable-model-invocation: false\n---\nbody').modelInvocable).toBeUndefined()
+    expect(splitSkillSource('---\ndescription: d\n---\nbody').modelInvocable).toBeUndefined()
+  })
 })
