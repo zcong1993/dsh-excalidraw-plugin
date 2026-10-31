@@ -10,7 +10,7 @@ disable-model-invocation: false
 
 本 skill 是 `/excalidraw` 自然语言入口的轻量替代：入口本身不再由插件命令实现，而由当前 Agent 在命中本 skill 后直接调用插件提供的三个原生工具完成。
 
-**前置条件**：当前 Session 必须已启用 `@local/dsh-excalidraw-preview` 插件，且能看到 `excalidraw_scene`、`excalidraw_preview`、`excalidraw_export` 三个工具。缺少工具时直接告诉用户启用该插件；不要用普通文件写入、shell 或新增服务器绕过它。
+**前置条件**：当前 Session 必须已启用 `@zcong/dsh-excalidraw-plugin` 插件，且能看到 `excalidraw_scene`、`excalidraw_preview`、`excalidraw_export` 三个工具。缺少工具时直接告诉用户启用该插件；不要用普通文件写入、shell 或新增服务器绕过它。
 
 ## 核心原则
 

@@ -26,48 +26,56 @@
 
 ### 1. 安装插件
 
-从源码目录安装到当前 profile：
+从 npm 安装到当前 profile：
 
 ```text
-plugin_manager install_bundle /absolute/path/to/dsh-excalidraw-plugin
+plugin_manager install_bundle @zcong/dsh-excalidraw-plugin@0.3.9
 ```
 
-或者把它作为本地依赖加入 profile 的 `package.json`：
+或者手动把它加入 profile 的 `package.json` 并启用：
 
 ```json
 {
   "dependencies": {
-    "@local/dsh-excalidraw-preview": "link:/absolute/path/to/dsh-excalidraw-plugin"
+    "@zcong/dsh-excalidraw-plugin": "^0.3.9"
   },
   "dsh": {
     "profile": {
-      "bundles": ["@local/dsh-excalidraw-preview"]
+      "bundles": ["@zcong/dsh-excalidraw-plugin"]
     }
   }
 }
 ```
 
-插件只注册 Host 服务、HTTP 路由和三个原生工具，不启动额外服务器，也不新增端口。
+插件只注册 Host 服务、HTTP 路由、三个原生工具和 `excalidraw` skill，不启动额外服务器，也不新增端口。
 
-### 2. 安装 skill
+### 2. skill 已随插件注册
 
-自然语言入口由独立的 `excalidraw` skill 提供（插件不再注册 `/excalidraw` 命令）。把仓库里的技能目录复制到下面任一位置：
+自然语言入口 `excalidraw` 由插件在启动时用 `ctx.skills.register()` 注册，不需要手动复制文件，也不需要 `/excalidraw` 命令。
+
+如果想自定义措辞，把仓库里的 `.dsh/skills/excalidraw/` 复制到下面任一位置即可覆盖运行时版本（项目级优先于运行时）：
 
 ```text
 <工作区>/.dsh/skills/excalidraw/      # 只对当前工作区生效
 ~/.agents/skills/excalidraw/          # 对所有工作区生效
 ```
 
-复制后重启会话或重新加载技能目录，`excalidraw` 会出现在技能列表中。
-
 ### 3. 从源码构建
 
+从仓库安装或修改代码时：
+
 ```bash
+git clone https://github.com/<owner>/dsh-excalidraw-plugin.git
+cd dsh-excalidraw-plugin
 pnpm install
 bun run build
 ```
 
-`build:canvas` 重建 `lib/client.js` 与 `lib/assets/`，`build:host` 生成 `lib/host.js`；两者顺序不可颠倒。
+`build:canvas` 重建 `lib/client.js` 与 `lib/assets/`，`build:host` 生成 `lib/host.js`；两者顺序不可颠倒。改完代码后安装本地目录：
+
+```text
+plugin_manager install_bundle /absolute/path/to/dsh-excalidraw-plugin
+```
 
 ## 快速开始
 

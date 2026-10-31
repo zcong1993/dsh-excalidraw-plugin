@@ -8,7 +8,7 @@ import { checkPngBudget, filesSignature, originMoved, pickAppStatePatch } from '
 import { CLIENT_CSS } from './styles.js'
 
 const NS = 'excalidrawCanvas'
-const BODY_ID = '@local/dsh-excalidraw-preview/canvas'
+const BODY_ID = '@zcong/dsh-excalidraw-plugin/canvas'
 const SHARED_KEY = '__DSH_EXCALIDRAW_SHARED__'
 const CANVAS_GLOBAL = '__DshExcalidrawCanvas'
 const previewTokens = new Map()

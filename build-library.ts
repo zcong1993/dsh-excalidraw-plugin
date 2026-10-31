@@ -5,7 +5,7 @@ import { join } from 'node:path'
 import postcss from 'postcss'
 import selectorParser from 'postcss-selector-parser'
 
-const PKG = '@local/dsh-excalidraw-preview'
+const PKG = '@zcong/dsh-excalidraw-plugin'
 const EXCALIDRAW = 'node_modules/@excalidraw/excalidraw/dist/prod'
 const ASSETS = 'lib/assets'
 

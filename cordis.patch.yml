@@ -1,4 +1,4 @@
 - insert:
-    - id: excalidraw-preview
-      name: '@local/dsh-excalidraw-preview'
+    - id: excalidraw-plugin
+      name: '@zcong/dsh-excalidraw-plugin'
       config: {}

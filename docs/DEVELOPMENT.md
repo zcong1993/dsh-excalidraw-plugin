@@ -1,6 +1,6 @@
 # DSH Excalidraw 插件开发规范
 
-> 适用范围：本仓库（`@local/dsh-excalidraw-preview`）及其独立 `excalidraw` skill。
+> 适用范围：本仓库（`@zcong/dsh-excalidraw-plugin`）及其独立 `excalidraw` skill。
 > 基线：DSH `0.2.1-rc.5`、Cordis `~4.0.5`、`@excalidraw/excalidraw@0.18.0`。
 > 本文是本仓库的工程约束，不是 DSH 上游的永久 API 承诺。涉及 Service、Event、Slot、Remote 的具体签名时，以当时 `cordis_inspect_query` 和实际安装包为准。
 
@@ -164,7 +164,7 @@ GET  /api/excalidraw-assets/*
 
 ### 5.1 渲染器注册
 
-- 在 `sidebar.right.tab.document` 注册 key 为 `@local/dsh-excalidraw-preview/canvas` 的 body。
+- 在 `sidebar.right.tab.document` 注册 key 为 `@zcong/dsh-excalidraw-plugin/canvas` 的 body。
 - 通过 `ctx.documentPreviews.register` 注册 `extensions: ['excalidraw']`、`loading: 'renderer'`、`priority: 'extension'`。
 - 官方 CSS 必须用 `.dsh-excalidraw-plugin` 前缀作用域；不得污染宿主页面。
 - Body 必须保留 `height:100%; min-height:0` 链，Excalidraw 根节点使用绝对定位填满。

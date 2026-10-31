@@ -11,3 +11,6 @@ package-lock.json
 
 # Scratch canvas used while developing the plugin.
 /rabbit-in-box.excalidraw
+
+# Local pnpm store created when hardlinks are unavailable.
+.pnpm-store/
