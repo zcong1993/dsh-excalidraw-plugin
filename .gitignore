@@ -8,3 +8,6 @@ lib/
 tests-artifacts/
 package-lock.json
 *.log
+
+# Scratch canvas used while developing the plugin.
+/rabbit-in-box.excalidraw
