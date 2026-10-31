@@ -13,6 +13,9 @@ package-lock.json
 # Scratch/test canvases. Drawings live in the user's workspace, not the plugin repo.
 *.excalidraw
 
+# Demo canvases used to show feature work (see AGENTS.md). Keep them out of the repo root.
+.demos/
+
 # Local pnpm store created when hardlinks are unavailable.
 .pnpm-store/
 

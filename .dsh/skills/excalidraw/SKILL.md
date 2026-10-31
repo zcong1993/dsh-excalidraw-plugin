@@ -15,6 +15,7 @@ disable-model-invocation: false
 ## 核心原则
 
 - 用户只描述需求，你负责布局、坐标、文字测量、绑定和样式。插件只执行与校验，不做高层自动布局。
+- **先让用户看到，再继续画**。从零创建时，第一步永远是 `create` 一个最小可用的骨架并立即 `excalidraw_preview` 打开，然后用 `begin → update` 增量补细节；不要等整张图画完才打开预览。
 - 源文件是唯一事实。不要给用户打印原始 JSON；用一句话说明已创建/修改了什么，并把画布打开给用户看。
 - 路径相对当前 Session 工作目录，必须以 `.excalidraw` 结尾。创建使用 `create`，目标必须不存在；修改使用 `begin → update → end`，不要无条件覆盖。
 - 用户手动编辑后，先读最新基线再改；不要根据旧摘要覆盖用户的新位置或新文字。
@@ -28,9 +29,9 @@ disable-model-invocation: false
 - 用户没给：选择一个描述性的 kebab-case 文件名，如 `user-gateway-service-db.excalidraw`，放在当前目录。
 - 当前目录已有图：先 `excalidraw_scene {action:"read", path:"...", format:"summary"}` 看清结构，再决定新建还是修改。多个候选时先问。
 
-### 2. 创建完整文档
+### 2. 先建最小画布并打开预览
 
-调用：
+先用 `create` 写入骨架（3–5 个主节点，或一条主线；暂不画箭头、装饰和长文案）：
 
 ```text
 excalidraw_scene {
@@ -39,6 +40,25 @@ excalidraw_scene {
   document: { type: "excalidraw", version: 2, elements: [...], appState: {...}, files: {} }
 }
 ```
+
+**然后立刻打开画布**，不要先补完再打开：
+
+```text
+excalidraw_preview { path: "<name>.excalidraw" }
+```
+
+画布初始只读，用户空闲时可点“编辑”。目标是在几秒内让用户在右侧看到东西；之后画布会自动跟随源版本变化，不要在每次修改后重复打开。
+
+### 3. 增量补全细节
+
+用 `begin → update` 分批补齐箭头、文字、装饰和配色，不要整图重写：
+
+```text
+excalidraw_scene { action: "begin", path: "<name>.excalidraw" }
+excalidraw_scene { action: "update", transactionId: "<id>", expectedVersion: "<version>", updates: [...] }
+```
+
+`update` 的规则见下面“修改现有图”。
 
 每个元素至少要有：
 
@@ -52,14 +72,6 @@ excalidraw_scene {
 **中文**：`fontFamily: 5`（Excalifont，官方字体包带 Xiaolai 中文回退）。文字宽度按内容估算，宁可留足空间，不要让文字溢出容器。
 
 简单架构图建议：横向 4 个节点，每个 170×70，间距 110；箭头高度与节点中心对齐；配色用浅底色 + 深色描边，例如蓝 `#1971c2/#e7f5ff`、绿 `#2f9e44/#ebfbee`、橙 `#e8590c/#fff4e6`、紫 `#6741d9/#f3f0ff`。
-
-### 3. 打开画布
-
-```text
-excalidraw_preview { path: "<name>.excalidraw" }
-```
-
-画布初始只读，用户空闲时可点“编辑”。画布会自动跟随源版本变化；不要在每次修改后重复打开。
 
 ### 4. 修改现有图
 
@@ -130,9 +142,10 @@ excalidraw_export { path: "<name>.excalidraw", format: "png", scale: 2, transpar
 
 用户：`画一个用户→网关→服务→数据库的架构图`
 
-1. `excalidraw_scene create` 写入四个节点和三条箭头。
-2. `excalidraw_preview` 打开右侧画布。
-3. 回复：`已创建 user-gateway-service-db.excalidraw（4 个节点，版本 …），画布已在右侧打开。`
+1. `excalidraw_scene create` 先只写入四个节点，文件名 `user-gateway-service-db.excalidraw`。
+2. 立刻 `excalidraw_preview` 打开右侧画布，让用户先看到骨架。
+3. `begin → update` 补三条箭头和配色。
+4. 回复：`已创建 user-gateway-service-db.excalidraw（4 个节点、3 条箭头，版本 …），画布已在右侧打开。`
 
 用户：`把当前图节点统一尺寸，保留我刚调整的位置`
 
