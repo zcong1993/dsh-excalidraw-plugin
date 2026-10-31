@@ -1,11 +1,12 @@
 import { applyCommands } from './commands.js'
 import { applyEvents } from './events.js'
 import { applyRoutes } from './routes.js'
+import { applySkill } from './skill.js'
 import { ExcalidrawService } from './service.js'
 import { applySceneTools } from './tools.js'
 
 /** Plugin name used by Cordis diagnostics. */
-export const name = 'excalidraw-preview'
+export const name = 'excalidraw-plugin'
 
 /** Services required for the source tools, commands, and browser edit surface. */
 export const inject = [
@@ -30,4 +31,5 @@ export function apply(ctx) {
   applyCommands(ctx, service)
   applyRoutes(ctx, service)
   applyEvents(ctx, service)
+  applySkill(ctx)
 }

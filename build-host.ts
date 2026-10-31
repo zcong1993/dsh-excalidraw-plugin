@@ -12,5 +12,6 @@ await build({
   sourcemap: false,
   legalComments: 'none',
   logLevel: 'info',
+  loader: { '.md': 'text' },
 })
 console.log('built lib/host.js')
