@@ -1,6 +1,6 @@
 /**
- * Host event wiring: agent working state, transaction cleanup, and the bounded
- * user-change message that follows a committed canvas edit.
+ * Host event wiring: agent working state, transaction cleanup, and the compact
+ * canvas block attached to the user's next message.
  * @param {import('@deepseek-ai/cordis').Context} ctx plugin context
  * @param {import('./service.js').ExcalidrawService} service shared business service
  */
@@ -24,12 +24,30 @@ export function applyEvents(ctx, service) {
     const decision = await next()
     if (decision.kind !== 'enter') return decision
     if (payload?.signal?.aborted) return decision
-    if (!decision.messages.some((message) => message.role === 'user')) return decision
-    const summary = await service.buildUserChangeMessage(payload.agent, payload.signal)
-    if (summary === undefined) return decision
-    return {
-      ...decision,
-      messages: [...decision.messages, summary],
+    const index = lastUserMessageIndex(decision.messages)
+    if (index === -1) return decision
+    const text = await service.buildUserChangeText(payload.agent, payload.signal)
+    if (text === undefined) return decision
+    const messages = [...decision.messages]
+    const message = messages[index]
+    messages[index] = {
+      ...message,
+      content: [...message.content, { type: 'text', text }],
     }
+    return { ...decision, messages }
   }), 'excalidraw: user change summary')
+}
+
+/**
+ * Index of the last message the human actually wrote. Runtime-context messages
+ * also carry the user role, so only `source.kind === 'user'` qualifies.
+ * @param {readonly object[]} messages messages entering the step
+ * @returns {number} index, or -1 when the step has no human message
+ */
+function lastUserMessageIndex(messages) {
+  for (let index = messages.length - 1; index >= 0; index -= 1) {
+    const message = messages[index]
+    if (message?.role === 'user' && message.source?.kind === 'user') return index
+  }
+  return -1
 }

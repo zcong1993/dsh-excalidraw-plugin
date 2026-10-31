@@ -1,4 +1,4 @@
-import { randomBytes, randomUUID } from 'node:crypto'
+import { randomBytes } from 'node:crypto'
 import { basename } from 'node:path'
 import {
   LIMITS,
@@ -631,7 +631,15 @@ export class ExcalidrawService {
     conn.dirty = false
     conn.lastSeen = now()
     if (flushMatch) this.resolveFlush(conn, version)
-    if (diff.totalChanges > 0) this.addPendingDiff(sessionId, diff)
+    if (diff.totalChanges > 0) {
+      this.addPendingChange(sessionId, {
+        path: conn.path,
+        before,
+        next,
+        fromVersion: baseVersion,
+        toVersion: version,
+      })
+    }
     const result = {
       version,
       savedAt: now(),
@@ -782,12 +790,31 @@ export class ExcalidrawService {
     reject(error)
   }
 
-  addPendingDiff(sessionId, diff) {
-    if (!this.pendingDiffs.has(sessionId)) this.pendingDiffs.set(sessionId, [])
-    this.pendingDiffs.get(sessionId).push(diff)
+  /**
+   * Queue a user commit for the next model-facing summary. Repeated commits to
+   * the same source coalesce into one net diff, so a drag that is undone before
+   * the next Agent step never reaches the model.
+   */
+  addPendingChange(sessionId, change) {
+    if (!this.pendingDiffs.has(sessionId)) this.pendingDiffs.set(sessionId, new Map())
+    const byPath = this.pendingDiffs.get(sessionId)
+    const pending = byPath.get(change.path)
+    if (pending === undefined) {
+      byPath.set(change.path, change)
+      return
+    }
+    pending.next = change.next
+    pending.toVersion = change.toVersion
   }
 
-  async buildUserChangeMessage(agent, signal) {
+  /**
+   * Build the compact canvas block appended to the user's next message. Pending
+   * commits coalesce per source first, so a drag that was undone contributes
+   * nothing; a file whose net diff is empty contributes no header at all.
+   * @returns {Promise<string | undefined>} block text, or undefined when the
+   * canvas did not change and no draft warning is due
+   */
+  async buildUserChangeText(agent, signal) {
     const sessionId = sessionIdOf(agent)
     if (sessionId === undefined) return undefined
     let failure
@@ -796,23 +823,29 @@ export class ExcalidrawService {
     } catch (error) {
       failure = error
     }
-    const diffs = this.pendingDiffs.get(sessionId) ?? []
-    if (diffs.length === 0 && failure === undefined) return undefined
-    const sections = diffs.map((diff) => formatDiffForModel(diff))
-    if (failure !== undefined) {
-      sections.push(`[Canvas draft warning] The last user draft could not be committed before this message: ${messageFor(failure)}. Treat the on-disk file as the baseline and do not assume the unsaved changes exist.`)
-    }
-    let text = sections.join('\n\n')
-    if (Buffer.byteLength(text, 'utf8') > LIMITS.maxDiffBytes) {
-      text = `${Buffer.from(text, 'utf8').subarray(0, LIMITS.maxDiffBytes - 60).toString('utf8')}\n[Canvas change summary truncated]`
-    }
+    const pending = this.pendingDiffs.get(sessionId)
     this.pendingDiffs.delete(sessionId)
-    return {
-      id: randomUUID(),
-      role: 'user',
-      source: { kind: 'user' },
-      content: [{ type: 'text', text }],
+    if (pending === undefined && failure === undefined) return undefined
+    let cwd
+    try {
+      cwd = await this.cwdFor(agent, signal)
+    } catch {
+      cwd = undefined
     }
+    const sections = []
+    for (const change of pending?.values() ?? []) {
+      const diff = diffDocuments(change.before, change.next, {
+        path: change.path,
+        fromVersion: change.fromVersion,
+        toVersion: change.toVersion,
+      })
+      if (diff.totalChanges > 0) sections.push(formatDiffForModel(diff, { cwd }))
+    }
+    if (failure !== undefined) {
+      sections.push(`[canvas] the last draft could not be committed: ${messageFor(failure)}`)
+    }
+    const text = sections.join('\n\n')
+    return text.length === 0 ? undefined : text
   }
 
   /* ------------------------------------------------------------------ *

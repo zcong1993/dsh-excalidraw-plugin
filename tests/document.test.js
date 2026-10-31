@@ -197,9 +197,13 @@ describe('document contract', () => {
     expect(diff.changes.find((change) => change.id === 'r1')?.fields.x).toEqual({ from: 10, to: 30 })
     expect(diff.changes.find((change) => change.id === 'r2')?.kind).toBe('soft-deleted')
     expect(diff.changes.find((change) => change.id === 't1')?.kind).toBe('added')
-    const message = formatDiffForModel(diff)
-    expect(message).toContain('r1')
+    const message = formatDiffForModel(diff, { cwd: '/tmp' })
+    expect(message).toContain('[canvas] a.excalidraw · 3 changes')
+    expect(message).toContain('- update rectangle "r1": x 10→30')
+    expect(message).toContain('- delete rectangle "r2"')
+    expect(message).toContain('- add text "t1" at (20,30) 80×24')
     expect(message).not.toContain('data:image')
+    expect(message).not.toContain('Version:')
   })
 
   test('diff truncates at one hundred changes', () => {
@@ -211,6 +215,7 @@ describe('document contract', () => {
     expect(diff.changes.length).toBe(100)
     expect(diff.truncated).toBe(true)
     expect(diff.totalChanges).toBe(150)
+    expect(formatDiffForModel(diff)).toContain('- … +50 more')
   })
 
   test('scene bounds include points and skip deleted elements', () => {

@@ -296,6 +296,46 @@ describe('host scene service', () => {
     expect(error.message).toMatch(/unsafe/)
   })
 
+  test('pending user commits coalesce into one net diff', async () => {
+    const { service, agent } = setup()
+    await service.create(agent, 'a.excalidraw', fixtureDocument())
+    const opened = await service.openCanvas({ sessionId: 's1', path: '/ws/a.excalidraw' })
+    const shape = fixtureDocument().elements[0]
+    const commitAt = async (x, opId) => service.commit({
+      sessionId: 's1',
+      token: opened.token,
+      baseVersion: service.connections.get(opened.token).version,
+      opId,
+      elements: [{ ...shape, x }],
+      files: {},
+      appStatePatch: {},
+    })
+
+    await commitAt(40, 'move-1')
+    await commitAt(0, 'undo-1')
+    await service.close({ sessionId: 's1', token: opened.token })
+    expect(await service.buildUserChangeText(agent)).toBeUndefined()
+
+    const reopened = await service.openCanvas({ sessionId: 's1', path: '/ws/a.excalidraw' })
+    const commitAgain = async (x, opId) => service.commit({
+      sessionId: 's1',
+      token: reopened.token,
+      baseVersion: service.connections.get(reopened.token).version,
+      opId,
+      elements: [{ ...shape, x }],
+      files: {},
+      appStatePatch: {},
+    })
+    await commitAgain(25, 'move-2')
+    await commitAgain(50, 'move-3')
+    await service.close({ sessionId: 's1', token: reopened.token })
+    const text = await service.buildUserChangeText(agent)
+    expect(text.startsWith('[canvas] a.excalidraw · 1 change')).toBe(true)
+    expect(text.match(/\[canvas\]/g)?.length).toBe(1)
+    expect(text).toContain('x 0→50')
+    expect(text).not.toContain('25')
+  })
+
   test('dispose rejects a pending export and clears pending transactions', async () => {
     const { service, agent } = setup()
     await service.create(agent, 'a.excalidraw', fixtureDocument())

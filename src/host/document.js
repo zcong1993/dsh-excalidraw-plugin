@@ -504,40 +504,57 @@ export function diffDocuments(before, after, meta = {}) {
 }
 
 /**
- * Render one bounded diff as a model-facing user message body.
+ * Render one bounded diff as a compact model-facing block: one header line per
+ * source and one line per element change. Exact versions and raw float noise
+ * stay out of the transcript; callers can read the file for authoritative state.
  * @param {object} diff result from {@link diffDocuments}
- * @returns {string} message text
+ * @param {{cwd?: string}} [options] working directory used to shorten the path
+ * @returns {string} block text
  */
-export function formatDiffForModel(diff) {
-  const lines = []
-  const path = diff.path === undefined ? '(canvas)' : `\`${diff.path}\``
-  lines.push(`Canvas changes committed by the user in ${path}.`)
-  if (diff.fromVersion !== undefined || diff.toVersion !== undefined) {
-    lines.push(`Version: ${diff.fromVersion ?? '?'} -> ${diff.toVersion ?? '?'}.`)
-  }
-  lines.push(`Total changes: ${diff.totalChanges}${diff.truncated ? ' (truncated)' : ''}.`)
-  for (const change of diff.changes) {
-    if (change.kind === 'added') {
-      lines.push(`- added ${change.type} ${change.id} at (${change.x}, ${change.y}) size ${change.width}x${change.height}`)
-    } else if (change.kind === 'removed') {
-      lines.push(`- removed ${change.type} ${change.id}`)
-    } else if (change.kind === 'soft-deleted') {
-      lines.push(`- soft-deleted ${change.type} ${change.id}`)
-    } else if (change.kind === 'restored') {
-      lines.push(`- restored ${change.type} ${change.id}`)
-    } else {
-      const fields = Object.entries(change.fields)
-        .map(([field, value]) => `${field}: ${JSON.stringify(value.from)} -> ${JSON.stringify(value.to)}`)
-        .join('; ')
-      lines.push(`- changed ${change.type} ${change.id}: ${fields}`)
-    }
-  }
-  if (diff.truncated) lines.push('The list above is truncated; read the source file for the complete current state.')
+export function formatDiffForModel(diff, options = {}) {
+  const total = diff.totalChanges
+  const path = diff.path === undefined ? '(canvas)' : shortenPath(diff.path, options.cwd)
+  const lines = [`[canvas] ${path} · ${total} ${total === 1 ? 'change' : 'changes'}`]
+  for (const change of diff.changes) lines.push(formatChangeForModel(change))
+  const hidden = total - diff.changes.length
+  if (hidden > 0) lines.push(`- … +${hidden} more`)
   let text = lines.join('\n')
   if (Buffer.byteLength(text, 'utf8') > LIMITS.maxDiffBytes) {
-    text = `${Buffer.from(text, 'utf8').subarray(0, LIMITS.maxDiffBytes - 40).toString('utf8')}\n[truncated]`
+    text = `${Buffer.from(text, 'utf8').subarray(0, LIMITS.maxDiffBytes - 40).toString('utf8')}\n- … truncated`
   }
   return text
+}
+
+function formatChangeForModel(change) {
+  const id = JSON.stringify(change.id)
+  if (change.kind === 'added') {
+    return `- add ${change.type} ${id} at (${formatNumber(change.x)},${formatNumber(change.y)}) ${formatNumber(change.width)}×${formatNumber(change.height)}`
+  }
+  if (change.kind === 'removed') return `- remove ${change.type} ${id}`
+  if (change.kind === 'soft-deleted') return `- delete ${change.type} ${id}`
+  if (change.kind === 'restored') return `- restore ${change.type} ${id}`
+  const fields = Object.entries(change.fields ?? {})
+    .map(([field, value]) => `${field} ${formatValue(value.from)}→${formatValue(value.to)}`)
+    .join(', ')
+  return `- update ${change.type} ${id}: ${fields}`
+}
+
+function formatValue(value) {
+  if (typeof value === 'number') return formatNumber(value)
+  if (typeof value === 'string' && /[\s,]/.test(value)) return JSON.stringify(value)
+  return value === null || value === undefined ? String(value) : value
+}
+
+function formatNumber(value) {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return String(value)
+  const rounded = Math.round(value * 100) / 100
+  return String(rounded === 0 ? 0 : rounded)
+}
+
+function shortenPath(path, cwd) {
+  if (typeof cwd !== 'string' || cwd.length === 0) return path
+  const base = cwd.endsWith('/') ? cwd : `${cwd}/`
+  return path.startsWith(base) ? path.slice(base.length) : path
 }
 
 /**
