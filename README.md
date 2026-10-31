@@ -28,7 +28,7 @@
 ## 安装
 
 ```text
-plugin_manager install_bundle @zcong/dsh-excalidraw-plugin@0.4.0
+plugin_manager install_bundle @zcong/dsh-excalidraw-plugin@0.4.1
 ```
 
 也可以在 profile 的 `package.json` 中加入依赖并启用：
@@ -36,7 +36,7 @@ plugin_manager install_bundle @zcong/dsh-excalidraw-plugin@0.4.0
 ```json
 {
   "dependencies": {
-    "@zcong/dsh-excalidraw-plugin": "^0.4.0"
+    "@zcong/dsh-excalidraw-plugin": "^0.4.1"
   },
   "dsh": {
     "profile": {

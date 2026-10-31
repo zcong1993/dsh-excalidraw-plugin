@@ -1,6 +1,6 @@
 {
   "name": "@zcong/dsh-excalidraw-plugin",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Excalidraw canvas for DeepSeek Harness: natural-language diagrams, sidebar editing, PNG/SVG export.",
   "type": "module",
   "engines": {
