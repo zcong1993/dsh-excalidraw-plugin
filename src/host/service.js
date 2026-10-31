@@ -852,7 +852,7 @@ export class ExcalidrawService {
    * Export
    * ------------------------------------------------------------------ */
 
-  async claimExport({ taskId, sessionId, token: tokenValue, signal }) {
+  async claimExport({ taskId, sessionId, token: tokenValue }) {
     const task = this.exportTasks.get(taskId)
     if (task === undefined) throw fail('EXPORT_NOT_FOUND', 'the export task is unknown or expired')
     if (task.sessionId !== sessionId) throw fail('UNAUTHORIZED', 'the export task belongs to a different Session')

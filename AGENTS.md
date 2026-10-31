@@ -16,14 +16,19 @@ DSH（DeepSeek Harness）的独立 Cordis 插件：在右侧边栏提供官方 E
 | `.dsh/skills/excalidraw/SKILL.md` | 自然语言入口（构建时内联并由 Host 运行时注册） |
 | `build-host.ts` / `build-library.ts` | 构建脚本；`bun run build` 先 canvas 后 host |
 | `lib/` | 构建产物，**不提交** |
+| `scripts/` | 构建产物与 npm tarball 的静态体检（CI 使用） |
 
 ## 命令
 
 ```bash
-pnpm install          # pnpm 11，与 DSH profile 一致
-bun run build         # build:canvas → build:host
-bun test              # Bun 测试
+pnpm install           # pnpm 11，与 DSH profile 一致
+bun run build          # build:canvas → build:host
+bun test               # Bun 测试
+bun test --coverage    # 覆盖率（行覆盖门槛 70%，见 bunfig.toml）
+pnpm run lint          # oxlint
 pnpm exec tsc --noEmit # 构建脚本类型检查
+node scripts/verify-build.mjs   # 产物：CSS 前缀、字体、locale、体积
+node scripts/verify-package.mjs .tmp/pkg/*.tgz  # tarball 白名单
 pnpm publish --dry-run
 ```
 
@@ -69,9 +74,11 @@ pnpm publish --dry-run
 
 ## 验证清单
 
-- [ ] `bun test` 全绿，新增行为有测试或手验记录。
+- [ ] `bun test --coverage` 全绿；**必须带 `--coverage`**，普通 `bun test` 不检查覆盖率门槛。
+- [ ] 全局行覆盖不低于 70%。门槛只统计测试导入的模块，`src/client/index.js` 等未导入代码不计入，不能用它证明全仓覆盖；改动这些区域时必须手验并在交付说明中注明。
 - [ ] `bun run build` 成功；`node --check lib/host.js lib/client.js lib/assets/canvas.js` 通过。
-- [ ] `pnpm exec tsc --noEmit` 通过。
+- [ ] `pnpm exec tsc --noEmit`、`pnpm run lint` 通过。
+- [ ] `node scripts/verify-build.mjs` 通过；`pnpm pack` 后 `node scripts/verify-package.mjs` 通过。
 - [ ] 插件安装返回 `applied` 且 `warnings` 为空。
 - [ ] 实际打开画布：中文可见、拖动/改字自动保存、冲突不丢草稿、PNG/SVG 与源版本一致。
 - [ ] 未提交 `lib/`、临时画布、截图或调试文件。

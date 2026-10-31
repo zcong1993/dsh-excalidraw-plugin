@@ -1,0 +1,5 @@
+[test]
+coverageThreshold = 0.7
+coverageReporter = ["text", "lcov"]
+coverageDir = "coverage"
+coveragePathIgnorePatterns = ["tests/**", "node_modules/**"]
