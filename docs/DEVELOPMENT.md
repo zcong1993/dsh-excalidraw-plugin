@@ -309,6 +309,36 @@ node scripts/verify-package.mjs .tmp/pkg/*.tgz
 - 修改 Client 后必须刷新页面；仅重载 Host 不会替换浏览器 bundle。
 - 不要用「测试通过」替代 GUI 验收。
 
+### 8.1 发布
+
+发布由 `.github/workflows/release.yml` 在推送 `v*` tag 时自动完成，使用 npm 的 Trusted Publishing（OIDC）：不保存 `NPM_TOKEN`，也不需要 OTP。
+
+一次性配置（在 npmjs.com 完成，仓库里没有可替代的步骤）：
+
+1. 包页面 → Settings → **Trusted publishing** → 添加 GitHub Actions。
+2. Repository 填 `zcong1993/dsh-excalidraw-plugin`，Workflow filename 填 `release.yml`，Environment 留空。
+3. 之后只能在存在该 trusted publisher 的前提下由本 workflow 发布。
+
+每次发版：
+
+```bash
+bun run release 0.4.0          # 版本号 + 提交 + 直推 main + 打 tag
+bun run release 0.4.0 --dry-run # 只看计划，不改仓库
+```
+
+`scripts/release.ts` 会校验版本号递增、工作区干净、`main` 与 `origin/main` 一致、tag 未存在，然后改三处版本号（`package.json` 与 `README.md` 的安装版本、`^x.y.z` 依赖），本地跑 `oxlint` + `bun test`，提交 `chore(release): vX.Y.Z`，直推 `main`，最后打并推 `vX.Y.Z` tag。手工等价步骤是：改版本号 → `git commit -am "chore(release): vX.Y.Z"` → `git push origin HEAD:main` → `git tag vX.Y.Z && git push origin vX.Y.Z`。
+
+release workflow 是这条路径的卡点：先校验 tag 与 `package.json` 一致，再跑 `tsc --noEmit`、`oxlint`、`bun test --coverage`、build、`verify-build`、`pnpm pack` + `verify-package`，并把打出的 tarball 装进全新 `DSH_HOME` 验证 `--dump-config` 含本插件；全部通过才 `npm publish --provenance` 并创建 GitHub Release。
+
+注意：发布提交直推 `main` 时不会等 `ci.yml` 的必需检查，所以 release workflow 必须自带完整卡点，任何一步失败都不得 publish。
+
+失败与回滚：
+
+- tag 与版本号不一致、测试或校验失败时，workflow 不会 publish，也不会创建 release。
+- 修好后删除远端 tag 重推：`git push --delete origin vX.Y.Z && git tag -f vX.Y.Z && git push origin vX.Y.Z`。
+- npm 上已发布的版本无法覆盖，只能发下一个 patch 版本。
+- 发布后自检：`npm view @zcong/dsh-excalidraw-plugin version`；在 profile 里 `plugin_manager install_bundle @zcong/dsh-excalidraw-plugin@X.Y.Z`，确认返回 `applied` 且 `warnings` 为空。
+
 ## 9. 安全边界
 
 - 编辑/导出路由只允许 owner Peer；viewer/API Peer 不得获得浏览器编辑权限。
