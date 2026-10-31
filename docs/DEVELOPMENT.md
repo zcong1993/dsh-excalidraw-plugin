@@ -56,7 +56,9 @@ Client CanvasBody ──► 官方 Excalidraw lazy chunk ──► 官方 export
 | `src/canvas/index.js` | 官方 Excalidraw 运行库入口 | 业务状态 |
 | `.dsh/skills/excalidraw/SKILL.md` | 自然语言工作流 | 代替工具执行 |
 | `lib/` | 构建产物（Host、Client、assets） | 手改 |
-| `tests/` | 纯契约与假 fs 回归 | 依赖真实 GUI |
+| `tests/` | 纯契约、假 fs、路由、工具与导出回归 | 依赖真实 GUI |
+| `scripts/` | 构建产物与 npm tarball 的静态体检 | 业务逻辑 |
+| `bunfig.toml` | 测试覆盖率门槛与报告位置 | 运行时配置 |
 
 ## 4. Host 开发规范
 
@@ -279,15 +281,25 @@ loading → ready(read-only) → editing → saving → saved
 
 ```bash
 pnpm install           # 依赖管理，与 DSH profile 保持一致
+pnpm run lint          # oxlint，correctness + 未使用变量
+pnpm exec tsc --noEmit # 两个构建脚本的类型检查
 bun run build          # build:canvas → build:host
-bun test
+node scripts/verify-build.mjs
+bun test --coverage    # 行覆盖门槛 70%
+pnpm pack --pack-destination .tmp/pkg
+node scripts/verify-package.mjs .tmp/pkg/*.tgz
 ```
 
 - `build:canvas` 会重建 `lib/`，因此必须在 `build:host` 之前。
 - `build:host` 输出 `lib/host.js`；`build:canvas` 输出 `lib/client.js` 与 `lib/assets/*`。
 - 语法检查：`node --check lib/host.js lib/client.js lib/assets/canvas.js`。
 - 类型检查：`pnpm exec tsc --noEmit`（`tsconfig.json` 覆盖两个构建脚本）。
-- 测试：纯文档契约、假 fs 服务、草稿/几何、事务锁、flush、idempotency、导出验证。
+- 测试覆盖：文档契约、假 fs 服务、事务锁、flush、idempotency、导出校验、HTTP 路由（鉴权/状态映射/路径遍历/下载 token）、工具 schema 与 `presentationMeta`、草稿/几何、地址与 Client HTTP 封装。
+- 覆盖率：`bunfig.toml` 设 `coverageThreshold = 0.7`，以行覆盖为准；Bun 只统计被测试导入的模块，未导入的 `client/index.js` 不计入，因此门槛不等于全仓真实覆盖。
+- `tests/support/host-fixture.js` 提供共享的假 fs、假 ctx 与导出握手，新测试优先复用它。
+- `scripts/verify-build.mjs` 检查：CSS 每条规则以 `.dsh-excalidraw-plugin` 开头、无远程 `url()`/`@import`、`@font-face` 全部指向 `./fonts/`；字体 ≥234 且与 manifest 一致；`zh-CN`/`en` locale；license/notices；共享 React 注入与 `EXCALIDRAW_ASSET_PATH`；无 source map；产物体积预算。
+- `scripts/verify-package.mjs` 检查 tarball 只含 `package.json`/README/LICENSE/`lib`/`locale`/`icon.svg`/`cordis.patch.yml`，并校验必需文件、字体数量、locale、`exports`/`dsh.bundle`/`engines.dsh`。
+- CI（`.github/workflows/ci.yml`）分四个 job：`quality`（tsc + oxlint）、`test`（覆盖率 + lcov artifact）、`bundle`（build + verify + pack + verify + tarball artifact）、`install-smoke`（在全新 `DSH_HOME` 中用 `@deepseek-ai/dsh@0.2.1-rc.5` 执行 `dsh plugin add`，并断言 `--dump-config` 含插件层）。
 - 手工验收：真实 GUI 打开画布、中文、拖动/改字/自动保存、冲突、断线、PNG/SVG 导出。
 - 安装：`plugin_manager install_bundle <absolute-path>`；以 `application: applied` 和 `warnings` 判定生效。
 - 修改 Client 后必须刷新页面；仅重载 Host 不会替换浏览器 bundle。
