@@ -103,6 +103,14 @@ describe('document contract', () => {
     expect(JSON.parse(textValue).privateExtension.keep).toBe(true)
   })
 
+  test('accepts official null boundElements', () => {
+    const doc = documentFixture()
+    doc.elements[0].boundElements = null
+    expect(() => validateDocument(doc)).not.toThrow()
+    doc.elements[0].boundElements = 'nope'
+    expect(() => validateDocument(doc)).toThrow(/array or null/)
+  })
+
   test('rejects duplicate ids and non-finite geometry', () => {
     const doc = documentFixture()
     doc.elements.push(rectangle('r1'))

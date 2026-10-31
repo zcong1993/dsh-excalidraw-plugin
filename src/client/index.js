@@ -4,7 +4,8 @@ import * as jsxRuntime from 'react/jsx-runtime'
 import { ApiError, createCanvasApi, markPreviewOpened, pendingPreview } from './api.js'
 import { parseFileAddress, sessionFileAddress } from './address.js'
 import { downloadDraft, draftStorageKey, loadDraft, makeDraft, removeDraft, saveDraft } from './draft.js'
-import { checkPngBudget, filesSignature, MAX_ZOOM, MIN_ZOOM, originMoved, pickAppStatePatch, stepZoom, zoomPercent, zoomViewportFor } from './geometry.js'
+import { editorSnapshot, editorSnapshotFromChange, resolveEditorState } from './editor-state.js'
+import { checkPngBudget, MAX_ZOOM, MIN_ZOOM, originMoved, stepZoom, zoomPercent, zoomViewportFor } from './geometry.js'
 import { CLIENT_CSS } from './styles.js'
 
 const NS = 'excalidrawCanvas'
@@ -258,10 +259,6 @@ function randomId() {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`
 }
 
-function signatureOf(elements, files, appStatePatch) {
-  return `${JSON.stringify(elements)}|${filesSignature(files)}|${JSON.stringify(appStatePatch)}`
-}
-
 function bytesToBase64(bytes) {
   let binary = ''
   const chunk = 0x8000
@@ -379,7 +376,9 @@ function CanvasBody(props) {
   const editableRef = React.useRef(false)
   const dirtyRef = React.useRef(false)
   const lastSigRef = React.useRef('')
+  const latestStateRef = React.useRef(undefined)
   const savingRef = React.useRef(false)
+  const saveSettledRef = React.useRef(undefined)
   const pendingSaveRef = React.useRef(false)
   const pendingFlushRef = React.useRef(undefined)
   const pendingRetryRef = React.useRef(undefined)
@@ -435,14 +434,14 @@ function CanvasBody(props) {
   }, [])
 
   const currentEditorState = React.useCallback(() => {
-    const api = excalidrawApiRef.current
-    if (api === undefined) return undefined
-    const elements = api.getSceneElements()
-    const files = api.getFiles()
-    const appState = api.getAppState()
-    const appStatePatch = pickAppStatePatch(appState, documentRef.current?.appState ?? {})
-    const signature = signatureOf(elements, files, appStatePatch)
-    return { elements, files, appState, appStatePatch, signature }
+    const state = resolveEditorState({
+      api: excalidrawApiRef.current,
+      mounted: mountedRef.current,
+      cached: latestStateRef.current,
+      previousAppState: documentRef.current?.appState ?? {},
+    })
+    if (state !== undefined) latestStateRef.current = state
+    return state
   }, [])
 
   const saveDraftNow = React.useCallback(() => {
@@ -499,11 +498,12 @@ function CanvasBody(props) {
     }
     documentRef.current = result.document
     versionRef.current = String(result.version)
+    latestStateRef.current = editorSnapshot(result.document.elements, result.document.files ?? {}, {})
     setDocumentState(result.document)
     setConflict(undefined)
     inflightRef.current = undefined
     dirtyRef.current = false
-    lastSigRef.current = signatureOf(result.document.elements, result.document.files ?? {}, {})
+    lastSigRef.current = latestStateRef.current.signature
     setStatusBoth('saved')
     setWorking(Boolean(result.working))
     content?.loaded?.(result.version)
@@ -555,6 +555,10 @@ function CanvasBody(props) {
       return
     }
     savingRef.current = true
+    let settleSave
+    saveSettledRef.current = new Promise((resolve) => {
+      settleSave = resolve
+    })
     setStatusBoth('saving')
     const body = retryBody ?? {
       baseVersion: versionRef.current,
@@ -564,7 +568,7 @@ function CanvasBody(props) {
       appStatePatch: state.appStatePatch,
       ...(flushId ? { flushId } : {}),
     }
-    const bodySignature = signatureOf(body.elements, body.files, body.appStatePatch)
+    const bodySignature = editorSnapshot(body.elements, body.files, body.appStatePatch).signature
     const bodyFlushId = body.flushId
     inflightRef.current = body
     try {
@@ -642,6 +646,8 @@ function CanvasBody(props) {
         pendingSaveRef.current = false
         if (statusRef.current !== 'conflict') scheduleSave()
       }
+      saveSettledRef.current = undefined
+      settleSave()
     }
   }, [ackFlush, currentEditorState, saveDraftNow, setEditableBoth, setStatusBoth])
 
@@ -654,9 +660,9 @@ function CanvasBody(props) {
 
   const handleChange = React.useCallback((elements, appState, files) => {
     if (suppressRef.current || !editableRef.current) return
-    const appStatePatch = pickAppStatePatch(appState, documentRef.current?.appState ?? {})
-    const signature = signatureOf(elements, files, appStatePatch)
-    if (signature === lastSigRef.current) return
+    const snapshot = editorSnapshotFromChange(elements, files, appState, documentRef.current?.appState ?? {})
+    if (snapshot.signature === lastSigRef.current) return
+    latestStateRef.current = snapshot
     dirtyRef.current = true
     setStatusBoth('unsaved')
     scheduleDraft()
@@ -880,7 +886,8 @@ function CanvasBody(props) {
       apiRef.current = createCanvasApi({ sessionId, token: result.token, path: result.path })
       documentRef.current = result.document
       versionRef.current = String(result.version)
-      lastSigRef.current = signatureOf(result.document.elements, result.document.files ?? {}, {})
+      latestStateRef.current = editorSnapshot(result.document.elements, result.document.files ?? {}, {})
+      lastSigRef.current = latestStateRef.current.signature
       setDocumentState(result.document)
       setWorking(Boolean(result.working))
       setPhase('ready')
@@ -926,10 +933,15 @@ function CanvasBody(props) {
       clearTimeout(saveTimerRef.current)
       clearTimeout(retryTimerRef.current)
       scrollUnsubRef.current?.()
+      // Excalidraw has already reset its scene by the time this passive
+      // cleanup runs, so protect the last onChange snapshot synchronously and
+      // commit that, never a fresh read of the unmounted API.
+      saveDraftNow()
       const api = apiRef.current
       if (api !== undefined) {
         const finish = async () => {
           try {
+            while (saveSettledRef.current !== undefined) await saveSettledRef.current
             if (dirtyRef.current) await commitNow()
           } catch {
             // The bounded draft remains in sessionStorage.
@@ -1056,6 +1068,11 @@ function CanvasBody(props) {
       files: info.draft.files ?? {},
       captureUpdate: 'NEVER',
     })
+    latestStateRef.current = editorSnapshot(
+      info.draft.elements,
+      info.draft.files ?? {},
+      info.draft.appStatePatch ?? {},
+    )
     dirtyRef.current = true
     setDraftInfo(undefined)
     setStatusBoth('unsaved')

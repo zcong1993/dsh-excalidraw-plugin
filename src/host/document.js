@@ -167,9 +167,10 @@ function assertElement(element, path, ids, files) {
   if (element.containerId !== undefined && element.containerId !== null && typeof element.containerId !== 'string') {
     throw fail('INVALID_DOCUMENT', `${path}.containerId must be a string or null`)
   }
-  if (element.boundElements !== undefined) {
+  // Official Excalidraw writes null when an element has no bindings.
+  if (element.boundElements !== undefined && element.boundElements !== null) {
     if (!Array.isArray(element.boundElements)) {
-      throw fail('INVALID_DOCUMENT', `${path}.boundElements must be an array`)
+      throw fail('INVALID_DOCUMENT', `${path}.boundElements must be an array or null`)
     }
     for (const [index, binding] of element.boundElements.entries()) {
       if (!isPlainObject(binding) || typeof binding.id !== 'string' || typeof binding.type !== 'string') {

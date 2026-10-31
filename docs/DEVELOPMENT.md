@@ -226,6 +226,7 @@ loading → ready(read-only) → editing → saving → saved
 - 网络失败保留 `inflight` body，定时重试同一个 `opId`；不要用新 opId 覆盖已提交结果。
 - 服务端返回 `VERSION_CONFLICT` 时停止自动保存，显示冲突，不自动加载覆盖。
 - 保存成功才删除草稿；失败/冲突保留。
+- 切换 Session / 关闭页签触发卸载时，必须用最近一次 `onChange` 的缓存快照同步保存草稿并提交，不能重新读取官方 API：Excalidraw 在 `componentWillUnmount` 中已把 scene 重置为空，父级 passive cleanup 再读会得到空画布并覆盖源文件。
 
 ### 5.5 草稿
 
