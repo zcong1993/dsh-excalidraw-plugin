@@ -188,6 +188,8 @@ GET  /api/excalidraw-assets/*
 - 通过 `ctx.documentPreviews.register` 注册 `extensions: ['excalidraw']`、`loading: 'renderer'`、`priority: 'extension'`。
 - 官方 CSS 必须用 `.dsh-excalidraw-plugin` 前缀作用域；不得污染宿主页面。
 - Body 必须保留 `height:100%; min-height:0` 链，Excalidraw 根节点使用绝对定位填满。
+- 插件 chrome 使用 DSH alias token（背景、文本、边框、状态色、圆角、阴影），不硬编码主题色；根节点带 `data-dsh-theme` 与 `dir`。
+- Excalidraw 的 chrome 变量映射到 DSH token；暗色覆盖需要 `.excalidraw.theme--dark` 级别特异性，否则会被官方暗色块覆盖。
 
 ### 5.2 预览打开必须幂等
 
@@ -272,7 +274,7 @@ loading → ready(read-only) → editing → saving → saved
 - Excalidraw 运行库必须构建为独立 lazy chunk：`lib/assets/canvas.js`。
 - React / ReactDOM / JSX runtime 从页面共享模块表注入；禁止第二份 React。
 - `window.EXCALIDRAW_ASSET_PATH` 指向 `api/excalidraw-assets/`（相对 `document.baseURI`）。
-- 官方 CSS 由构建脚本用 PostCSS 加 `.dsh-excalidraw-plugin` 前缀；字体 URL 保持相对 CSS 的 `./fonts/...`。
+- 官方 CSS 由构建脚本用 PostCSS 加 `.dsh-excalidraw-plugin` 前缀；`:root` 的 z-index / safe-area 变量落到插件根节点，根节点必须带 `dir` 才能匹配 `:root[dir=...]` 规则；字体 URL 保持相对 CSS 的 `./fonts/...`。
 - 打包全部 234 个 WOFF2 字体（含 Xiaolai 中文回退）和 locales。
 - `lib/assets/LICENSE-excalidraw` 与 `THIRD_PARTY_NOTICES.md` 必须随包发布。
 - 禁止从 CDN 加载画布、字体或 React。
@@ -358,6 +360,7 @@ node scripts/verify-package.mjs .tmp/pkg/*.tgz
 
 - [ ] `plugin_manager install_bundle` 返回 `applied`，warnings 为空。
 - [ ] GUI 实际打开画布；中文可见；缩放/平移/拖动坐标准确。
+- [ ] 编辑模式下官方形状工具栏可见、可点击；暗色主题跟随 DSH 切换。
 - [ ] 用户编辑自动保存；Agent working 时只读；idle 后可继续。
 - [ ] 旧版本提交失败；冲突不丢草稿。
 - [ ] PNG/SVG 与同一源版本一致，包含整图与中文。

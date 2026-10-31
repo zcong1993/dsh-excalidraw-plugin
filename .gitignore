@@ -10,8 +10,8 @@ coverage/
 package-lock.json
 *.log
 
-# Scratch canvas used while developing the plugin.
-/rabbit-in-box.excalidraw
+# Scratch/test canvases. Drawings live in the user's workspace, not the plugin repo.
+*.excalidraw
 
 # Local pnpm store created when hardlinks are unavailable.
 .pnpm-store/
