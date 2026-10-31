@@ -43,6 +43,9 @@ jobs:
     name: Unit and contract tests
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write
     steps:
       - uses: actions/checkout@v4
 
@@ -65,7 +68,7 @@ jobs:
       - name: Run tests with coverage
         run: bun test --coverage
 
-      - name: Upload coverage
+      - name: Upload coverage artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -73,6 +76,16 @@ jobs:
           path: coverage/
           retention-days: 7
           if-no-files-found: warn
+
+      - name: Upload coverage to Codecov
+        if: always()
+        uses: codecov/codecov-action@v5
+        with:
+          files: ./coverage/lcov.info
+          flags: unit
+          name: unit
+          use_oidc: true
+          fail_ci_if_error: false
 
   bundle:
     name: Build and package

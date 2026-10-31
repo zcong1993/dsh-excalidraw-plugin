@@ -299,7 +299,8 @@ node scripts/verify-package.mjs .tmp/pkg/*.tgz
 - `tests/support/host-fixture.js` 提供共享的假 fs、假 ctx 与导出握手，新测试优先复用它。
 - `scripts/verify-build.mjs` 检查：CSS 每条规则以 `.dsh-excalidraw-plugin` 开头、无远程 `url()`/`@import`、`@font-face` 全部指向 `./fonts/`；字体 ≥234 且与 manifest 一致；`zh-CN`/`en` locale；license/notices；共享 React 注入与 `EXCALIDRAW_ASSET_PATH`；无 source map；产物体积预算。
 - `scripts/verify-package.mjs` 检查 tarball 只含 `package.json`/README/LICENSE/`lib`/`locale`/`icon.svg`/`cordis.patch.yml`，并校验必需文件、字体数量、locale、`exports`/`dsh.bundle`/`engines.dsh`。
-- CI（`.github/workflows/ci.yml`）分四个 job：`quality`（tsc + oxlint）、`test`（覆盖率 + lcov artifact）、`bundle`（build + verify + pack + verify + tarball artifact）、`install-smoke`（在全新 `DSH_HOME` 中用 `@deepseek-ai/dsh@0.2.1-rc.5` 执行 `dsh plugin add`，并断言 `--dump-config` 含插件层）。
+- CI（`.github/workflows/ci.yml`）分四个 job：`quality`（tsc + oxlint）、`test`（覆盖率 + lcov artifact + Codecov 上传）、`bundle`（build + verify + pack + verify + tarball artifact）、`install-smoke`（在全新 `DSH_HOME` 中用 `@deepseek-ai/dsh@0.2.1-rc.5` 执行 `dsh plugin add`，并断言 `--dump-config` 含插件层）。
+- Codecov 用 `use_oidc: true` 上传，不保存 token；`fail_ci_if_error: false`，外部服务抖动不阻塞 PR。`codecov.yml` 的 project 门槛与 `bunfig.toml` 一致为 70%，patch 状态暂设 `informational`，等浏览器回归补齐后再考虑转成硬门槛。
 - 手工验收：真实 GUI 打开画布、中文、拖动/改字/自动保存、冲突、断线、PNG/SVG 导出。
 - 安装：`plugin_manager install_bundle <absolute-path>`；以 `application: applied` 和 `warnings` 判定生效。
 - 修改 Client 后必须刷新页面；仅重载 Host 不会替换浏览器 bundle。

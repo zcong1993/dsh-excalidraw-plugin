@@ -1,0 +1,16 @@
+# Codecov mirrors the local Bun gate. The threshold in bunfig.toml is still
+# what fails CI; Codecov adds the PR comment and coverage history. Patch status
+# is informational so a change confined to the uncovered client entry point
+# does not turn into a red check before the browser harness exists.
+coverage:
+  status:
+    project:
+      default:
+        target: 70%
+    patch:
+      default:
+        target: 70%
+        informational: true
+comment:
+  layout: "reach, diff, flags, files"
+  require_changes: false
