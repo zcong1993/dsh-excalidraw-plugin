@@ -8,7 +8,7 @@
 
 为 Excalidraw 增加 AI 能力，让 Agent 和你协作画图。
 
-<img width="1200" alt="左侧对话与右侧 Excalidraw 画布：Agent 能看到你的修改" src="docs/assets/readme-hero.png">
+<img width="1200" alt="左侧对话与右侧 Excalidraw 画布：Agent 能看到你的修改" src="https://raw.githubusercontent.com/zcong1993/dsh-excalidraw-plugin/main/docs/assets/readme-hero.png">
 
 <sub>你的修改，Agent 看得到。</sub>
 
