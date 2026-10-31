@@ -38,8 +38,8 @@ pnpm publish --dry-run
 
 开发或修改插件功能时，先把效果做出来给用户看，再埋头改实现：
 
-- 动手前在仓库根目录建一个 demo `.excalidraw`（如 `demo-zoom-controls.excalidraw`），用 `excalidraw_preview` 打开，让用户先看到当前效果和目标状态。
-- demo 文件已被 `.gitignore` 忽略，不要提交；它只用来给用户看效果，不能当作测试夹具或发布内容。
+- 动手前在 `.demos/` 下建 demo `.excalidraw`（如 `.demos/zoom-controls.excalidraw`），用 `excalidraw_preview` 打开，让用户先看到当前效果和目标状态。不要在仓库根目录散落 demo 文件。
+- `.demos/` 已被 `.gitignore` 忽略，demo 只用来给用户看效果，不能当作测试夹具或发布内容，也不要提交。
 - 改 Client、交互、工具栏这类只能肉眼验证的功能时，先在 demo 上跑通并让用户确认，再按下面的验证清单收尾；纯 Host 逻辑或纯函数改动可以跳过。
 - 用户没明确要求时不要导出 demo；需要截图对比时放 `.tmp/`。
 
