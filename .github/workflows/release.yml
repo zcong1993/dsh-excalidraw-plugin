@@ -1,0 +1,79 @@
+name: Release
+
+# Trusted publishing: npm accepts this workflow through OIDC, so no NPM_TOKEN
+# secret and no 2FA prompt is involved. Configure it once at npmjs.com:
+# package -> Settings -> Trusted publishing -> GitHub Actions, repository
+# zcong1993/dsh-excalidraw-plugin, workflow file release.yml.
+on:
+  push:
+    tags: ['v*']
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    name: Publish to npm
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write # gh release create
+      id-token: write # npm trusted publishing / provenance
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.28.5
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.12
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Fail when the tag does not match package.json
+        run: |
+          version="$(node -p "require('./package.json').version")"
+          if [ "v$version" != "$GITHUB_REF_NAME" ]; then
+            echo "tag $GITHUB_REF_NAME does not match package.json version $version" >&2
+            exit 1
+          fi
+
+      - name: Lint and test
+        run: |
+          pnpm run lint
+          bun test --coverage
+
+      - name: Build and verify the bundles
+        run: |
+          bun run build
+          node --check lib/host.js lib/client.js lib/assets/canvas.js
+          node scripts/verify-build.mjs
+
+      - name: Verify the npm tarball
+        run: |
+          mkdir -p .tmp/pkg
+          pnpm pack --pack-destination .tmp/pkg
+          node scripts/verify-package.mjs .tmp/pkg/*.tgz
+
+      - name: Publish to npm with provenance
+        run: npm publish --provenance --access public
+
+      - name: Create the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --generate-notes
