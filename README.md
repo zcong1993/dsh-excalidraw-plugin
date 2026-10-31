@@ -1,6 +1,7 @@
 # Excalidraw for DeepSeek Harness
 
 [![CI](https://github.com/zcong1993/dsh-excalidraw-plugin/actions/workflows/ci.yml/badge.svg)](https://github.com/zcong1993/dsh-excalidraw-plugin/actions/workflows/ci.yml)
+[![npm](https://img.shields.io/npm/v/@zcong/dsh-excalidraw-plugin)](https://www.npmjs.com/package/@zcong/dsh-excalidraw-plugin)
 [![License: MIT](https://img.shields.io/github/license/zcong1993/dsh-excalidraw-plugin)](LICENSE)
 ![DSH](https://img.shields.io/badge/DSH-0.2.1--rc.5-blue)
 
