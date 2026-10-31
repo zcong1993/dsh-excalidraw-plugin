@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "skills": {
+    "dsh-trim-cot-leakage": {
+      "source": "deepseek-ai/deepseek-harness",
+      "sourceType": "github",
+      "skillPath": ".agents/skills/dsh-trim-cot-leakage/SKILL.md",
+      "computedHash": "ca0f55037c784b671ac4f823b278ffca41f3cf1b92bc055ce21d7279e3ce5341"
+    }
+  }
+}
