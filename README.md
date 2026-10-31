@@ -6,9 +6,11 @@
 [![License: MIT](https://img.shields.io/github/license/zcong1993/dsh-excalidraw-plugin)](LICENSE)
 ![DSH](https://img.shields.io/badge/DSH-0.2.1--rc.5-blue)
 
-在 DeepSeek Harness 的右侧边栏使用官方 Excalidraw 画布：让 Agent 用自然语言画图，你在同一张画布上继续修改，最后导出 PNG / SVG。
+为 Excalidraw 增加 AI 能力，让 Agent 和你协作画图。
 
-图形保存在工作区里真实的 `.excalidraw` 文件上，Agent 和你编辑的是同一个源文件。
+<img width="1200" alt="左侧对话与右侧 Excalidraw 画布：Agent 能看到你的修改" src="docs/assets/readme-hero.png">
+
+<sub>你的修改，Agent 看得到。</sub>
 
 ## 特性
 
@@ -44,16 +46,16 @@ plugin_manager install_bundle @zcong/dsh-excalidraw-plugin@0.4.0
 }
 ```
 
-安装后 `excalidraw` skill 会由插件自动注册，不需要复制文件；插件不再注册 `/excalidraw` 命令。
+安装后 `excalidraw` skill 会由插件自动注册，不需要复制文件；输入 `/excalidraw` 即可调用。
 
 ## 快速开始
 
-直接对 Agent 说：
+输入 `/excalidraw`，后面直接接需求：
 
 ```text
-画一个用户 → 网关 → 服务 → 数据库的架构图
-把当前图里的节点统一尺寸，保留我调整过的位置
-把这张图导出成 PNG
+/excalidraw 画一个用户 → 网关 → 服务 → 数据库的架构图
+/excalidraw 把当前图里的节点统一尺寸，保留我调整过的位置
+/excalidraw 把这张图导出成 PNG
 ```
 
 Agent 会创建或修改 `.excalidraw` 文件并在右侧打开画布，之后你可以在画布上直接编辑。
