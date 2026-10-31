@@ -1,4 +1,4 @@
-import { build } from 'esbuild'
+import { build, type BuildOptions, type PluginBuild } from 'esbuild'
 import { cp, copyFile, mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
@@ -12,7 +12,7 @@ const ASSETS = 'lib/assets'
 function reactShim() {
   return {
     name: 'excalidraw-react-shim',
-    setup(buildApi) {
+    setup(buildApi: PluginBuild) {
       buildApi.onResolve({ filter: /^(react|react-dom|react\/jsx-runtime|react-dom\/client)$/ }, (args) => ({
         path: args.path,
         namespace: 'excalidraw-shared-react',
@@ -40,7 +40,7 @@ function reactShim() {
   }
 }
 
-const common = {
+const common: BuildOptions = {
   bundle: true,
   platform: 'browser',
   target: ['es2022'],
