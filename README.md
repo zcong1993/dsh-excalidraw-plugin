@@ -65,7 +65,7 @@ plugin_manager install_bundle @zcong/dsh-excalidraw-plugin@0.3.9
 从仓库安装或修改代码时：
 
 ```bash
-git clone https://github.com/<owner>/dsh-excalidraw-plugin.git
+git clone https://github.com/zcong1993/dsh-excalidraw-plugin.git
 cd dsh-excalidraw-plugin
 pnpm install
 bun run build
