@@ -1,6 +1,7 @@
 {
   "name": "@local/dsh-excalidraw-preview",
   "version": "0.3.9",
+  "description": "Excalidraw canvas for DeepSeek Harness: natural-language diagrams, sidebar editing, PNG/SVG export.",
   "private": true,
   "type": "module",
   "engines": {
@@ -54,5 +55,14 @@
       ]
     }
   },
-  "packageManager": "pnpm@11.28.5"
+  "packageManager": "pnpm@11.28.5",
+  "keywords": [
+    "excalidraw",
+    "deepseek-harness",
+    "dsh",
+    "cordis",
+    "diagram",
+    "plugin"
+  ],
+  "license": "MIT"
 }
