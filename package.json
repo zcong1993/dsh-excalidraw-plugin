@@ -26,6 +26,7 @@
     "@types/node": "24.19.2",
     "esbuild": "0.25.12",
     "happy-dom": "21.0.4",
+    "oxlint": "1.90.0",
     "postcss": "8.5.6",
     "postcss-selector-parser": "7.1.0",
     "react": "18.3.1",
@@ -37,7 +38,11 @@
     "build:canvas": "bun build-library.ts",
     "build:host": "bun build-host.ts",
     "build": "bun build:canvas && bun build:host",
-    "prepublishOnly": "bun run build"
+    "prepublishOnly": "bun run build",
+    "lint": "oxlint src tests build-host.ts build-library.ts scripts",
+    "verify:build": "node scripts/verify-build.mjs",
+    "verify:package": "node scripts/verify-package.mjs",
+    "test:coverage": "bun test --coverage"
   },
   "dsh": {
     "bundle": {
