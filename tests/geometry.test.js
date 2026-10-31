@@ -2,11 +2,17 @@ import { describe, expect, test } from 'bun:test'
 import {
   MAX_EXPORT_PIXELS,
   MAX_EXPORT_SIDE,
+  MAX_ZOOM,
+  MIN_ZOOM,
   checkPngBudget,
+  clampZoom,
   filesSignature,
   originMoved,
   pickAppStatePatch,
   sceneBounds,
+  stepZoom,
+  zoomPercent,
+  zoomViewportFor,
 } from '../src/client/geometry.js'
 
 const rectangle = (overrides = {}) => ({
@@ -60,5 +66,37 @@ describe('canvas geometry and layout inputs', () => {
     const left = filesSignature({ f1: { dataURL: 'data:image/png;base64,AAAA', mimeType: 'image/png' } })
     const right = filesSignature({ f1: { dataURL: 'data:image/png;base64,BBBB', mimeType: 'image/png' } })
     expect(left).not.toBe(right)
+  })
+})
+
+describe('canvas zoom helpers', () => {
+  test('steps in 0.1 increments without float drift and clamps to official bounds', () => {
+    expect(stepZoom(1, 1)).toBe(1.1)
+    expect(stepZoom(1, -1)).toBeCloseTo(0.9)
+    expect(stepZoom(0.3, -1)).toBe(0.2)
+    expect(stepZoom(0.32, 1)).toBe(0.42)
+    expect(stepZoom(MIN_ZOOM, -1)).toBe(MIN_ZOOM)
+    expect(stepZoom(MAX_ZOOM, 1)).toBe(MAX_ZOOM)
+    expect(stepZoom(MAX_ZOOM - 0.05, 1)).toBe(MAX_ZOOM)
+  })
+
+  test('keeps the scene point under the viewport center fixed', () => {
+    const appState = { scrollX: 100, scrollY: 50, zoom: { value: 2 }, width: 800, height: 600 }
+    const centerSceneX = appState.width / 2 / appState.zoom.value - appState.scrollX
+    const centerSceneY = appState.height / 2 / appState.zoom.value - appState.scrollY
+    const next = zoomViewportFor(appState, 1)
+    expect(appState.width / 2 / next.zoom.value - next.scrollX).toBeCloseTo(centerSceneX)
+    expect(appState.height / 2 / next.zoom.value - next.scrollY).toBeCloseTo(centerSceneY)
+    expect(next.zoom).toEqual({ value: 1 })
+  })
+
+  test('clamps invalid or out-of-range input and reports whole percentages', () => {
+    expect(clampZoom(0.01)).toBe(MIN_ZOOM)
+    expect(clampZoom(100)).toBe(MAX_ZOOM)
+    expect(clampZoom(Number.NaN)).toBe(1)
+    expect(zoomViewportFor({}, 1)).toEqual({ scrollX: 0, scrollY: 0, zoom: { value: 1 } })
+    expect(zoomPercent(0.333)).toBe(33)
+    expect(zoomPercent(MIN_ZOOM)).toBe(10)
+    expect(zoomPercent(MAX_ZOOM)).toBe(3000)
   })
 })
