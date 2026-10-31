@@ -40,6 +40,7 @@
     "build": "bun build:canvas && bun build:host",
     "prepublishOnly": "bun run build",
     "lint": "oxlint src tests build-host.ts build-library.ts scripts",
+    "release": "bun scripts/release.ts",
     "verify:build": "node scripts/verify-build.mjs",
     "verify:package": "node scripts/verify-package.mjs",
     "test:coverage": "bun test --coverage"
