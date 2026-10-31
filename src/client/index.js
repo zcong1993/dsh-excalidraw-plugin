@@ -44,6 +44,8 @@ const zh = {
   downloadExport: '下载导出文件',
   export: '导出',
   exportUnavailable: '画布尚未就绪，暂时无法导出',
+  offlineShort: '连接中断',
+  errorShort: '连接失效',
   cancel: '取消',
   empty: '这张图还没有可见元素',
   reload: '重新加载',
@@ -85,6 +87,8 @@ const en = {
   downloadExport: 'Download exported file',
   export: 'Export',
   exportUnavailable: 'The canvas is not ready to export yet',
+  offlineShort: 'Disconnected',
+  errorShort: 'Connection lost',
   cancel: 'Cancel',
   empty: 'This diagram has no visible elements',
   reload: 'Reload',
@@ -297,7 +301,7 @@ function CanvasBody(props) {
   const [exportState, setExportState] = React.useState(undefined)
   const [exportMenuOpen, setExportMenuOpen] = React.useState(false)
   const [theme, setTheme] = React.useState(themeStore.get())
-  const [reloadTick, setReloadTick] = React.useState(0)
+  const [reconnectTick, setReconnectTick] = React.useState(0)
 
   const apiRef = React.useRef(undefined)
   const excalidrawApiRef = React.useRef(undefined)
@@ -327,6 +331,8 @@ function CanvasBody(props) {
   const exportMenuRef = React.useRef(null)
   const bootstrapRef = React.useRef(false)
   const lastRevisionRef = React.useRef(undefined)
+  const reconnectAtRef = React.useRef(0)
+  const reconnectCountRef = React.useRef(0)
 
   editableRef.current = editable
 
@@ -703,6 +709,21 @@ function CanvasBody(props) {
     return () => document.removeEventListener('click', onDocumentClick)
   }, [exportMenuOpen])
 
+  /**
+   * A stale connection (Host restarted, or the canvas was reopened elsewhere)
+   * keeps polling failing with NOT_OPEN. Reopen the canvas instead of freezing
+   * the last known state; never do it while the user has unsaved edits.
+   */
+  const requestReconnect = React.useCallback(() => {
+    if (editableRef.current || dirtyRef.current) return
+    if (reconnectCountRef.current >= 3) return
+    const now = Date.now()
+    if (now - reconnectAtRef.current < 5000) return
+    reconnectAtRef.current = now
+    reconnectCountRef.current += 1
+    setReconnectTick((value) => value + 1)
+  }, [])
+
   const poll = React.useCallback(async () => {
     if (pollingRef.current || apiRef.current === undefined || !mountedRef.current) return
     pollingRef.current = true
@@ -712,10 +733,13 @@ function CanvasBody(props) {
         dirty: dirtyRef.current,
       })
       if (!mountedRef.current) return
+      reconnectCountRef.current = 0
+      reconnectAtRef.current = 0
       setWorking(Boolean(result.working))
       setTransactionLock(Boolean(result.transaction))
       if (result.missing) {
         setStatusBoth('error', t('sessionUnavailable'))
+        requestReconnect()
         return
       }
       if (result.flush !== null && result.flush !== undefined) {
@@ -751,12 +775,15 @@ function CanvasBody(props) {
       if (!mountedRef.current) return
       if (error instanceof ApiError) {
         if (error.code === 'OFFLINE' || error.code === 'TIMEOUT') setStatusBoth('offline')
-        else if (error.code === 'UNAUTHORIZED' || error.code === 'NOT_OPEN') setStatusBoth('error', t('sessionUnavailable'))
+        else if (error.code === 'UNAUTHORIZED' || error.code === 'NOT_OPEN') {
+          setStatusBoth('error', t('sessionUnavailable'))
+          requestReconnect()
+        }
       }
     } finally {
       pollingRef.current = false
     }
-  }, [commitNow, refreshFromHost, runExport, setEditableBoth, setStatusBoth, t])
+  }, [commitNow, refreshFromHost, requestReconnect, runExport, setEditableBoth, setStatusBoth, t])
 
   const bootstrap = React.useCallback(async () => {
     bootstrapRef.current = false
@@ -813,6 +840,13 @@ function CanvasBody(props) {
       content?.failed?.()
     }
   }, [addResource, assets, content, path, poll, sessionId, t])
+
+  const handledReconnectRef = React.useRef(0)
+  React.useEffect(() => {
+    if (reconnectTick === 0 || handledReconnectRef.current === reconnectTick) return
+    handledReconnectRef.current = reconnectTick
+    void bootstrap()
+  }, [reconnectTick, bootstrap])
 
   React.useEffect(() => {
     mountedRef.current = true
@@ -1015,7 +1049,13 @@ function CanvasBody(props) {
           'data-status': working && !editable ? 'locked' : status,
           'aria-hidden': 'true',
         }),
-        h('span', null, editable ? statusLabel : (working ? t('locked') : t('readOnly'))),
+        h('span', null, editable
+          ? statusLabel
+          : status === 'offline'
+            ? t('offlineShort')
+            : status === 'error'
+              ? t('errorShort')
+              : working ? t('locked') : t('readOnly')),
       ),
       h('div', { className: 'dsh-excalidraw-actions' },
         editable
@@ -1051,7 +1091,11 @@ function CanvasBody(props) {
           type: 'button',
           className: 'dsh-excalidraw-button',
           onClick: () => {
-            setReloadTick((value) => value + 1)
+            if (status === 'error' || status === 'offline') {
+              reconnectCountRef.current = 0
+              void bootstrap()
+              return
+            }
             void refreshFromHost()
           },
         }, t('reload')),
