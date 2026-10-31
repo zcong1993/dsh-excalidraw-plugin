@@ -1,5 +1,9 @@
 # Excalidraw for DeepSeek Harness
 
+[![CI](https://github.com/zcong1993/dsh-excalidraw-plugin/actions/workflows/ci.yml/badge.svg)](https://github.com/zcong1993/dsh-excalidraw-plugin/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/github/license/zcong1993/dsh-excalidraw-plugin)](LICENSE)
+![DSH](https://img.shields.io/badge/DSH-0.2.1--rc.5-blue)
+
 在 DeepSeek Harness 的右侧边栏使用官方 Excalidraw 画布：让 Agent 用自然语言画图，你在同一张画布上继续修改，最后导出 PNG / SVG。
 
 图形保存在工作区里真实的 `.excalidraw` 文件上，Agent 和你编辑的是同一个源文件。
