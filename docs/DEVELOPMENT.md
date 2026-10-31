@@ -214,6 +214,7 @@ loading → ready(read-only) → editing → saving → saved
 - 冲突状态禁止自动保存，不得静默丢弃草稿。
 - 断线保留草稿；恢复后重试同一 `opId`。
 - “完成编辑”必须先提交，再退出。
+- 工具栏缩放（− / 比例 / + / 适应屏幕）只改本地视口 appState：围绕视口中心缩放，不进入 `appStatePatch`、不触发保存；适应屏幕调用官方 `scrollToContent({ fitToContent: true })`，空图回到 100%。百分比通过官方 `onScrollChange` 跟随滚轮缩放。
 - 工具栏“导出”菜单提供 PNG 2× / PNG 3× / SVG，导出当前画面（含未提交编辑）并直接触发浏览器下载；不走 Host 导出任务、不写附件。
 
 ### 5.4 自动保存

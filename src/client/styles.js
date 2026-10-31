@@ -82,6 +82,35 @@ export const CLIENT_CSS = `
   flex-wrap: wrap;
   justify-content: flex-end;
 }
+.dsh-excalidraw-zoom {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+}
+.dsh-excalidraw-zoom .dsh-excalidraw-zoom-button {
+  width: 26px;
+  height: 26px;
+  padding: 0;
+}
+.dsh-excalidraw-zoom-value {
+  box-sizing: border-box;
+  min-width: 42px;
+  padding: 0 2px;
+  color: var(--dsw-alias-label-tertiary, #81858c);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  line-height: 18px;
+  text-align: center;
+  white-space: nowrap;
+  user-select: none;
+  cursor: default;
+}
+.dsh-excalidraw-zoom-divider {
+  width: 1px;
+  height: 14px;
+  margin: 0 3px;
+  background: var(--dsw-alias-border-l2, rgba(0, 0, 0, 0.1));
+}
 .dsh-excalidraw-button {
   box-sizing: border-box;
   display: inline-flex;

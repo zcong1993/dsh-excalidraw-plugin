@@ -3,6 +3,48 @@
 export const MAX_EXPORT_PIXELS = 16_777_216
 export const MAX_EXPORT_SIDE = 16_384
 
+// Official Excalidraw zoom bounds and one footer step; the header controls use
+// the same values so a zoom level means the same thing everywhere.
+export const MIN_ZOOM = 0.1
+export const MAX_ZOOM = 30
+export const ZOOM_STEP = 0.1
+
+export function clampZoom(zoom) {
+  if (!Number.isFinite(zoom)) return 1
+  return Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, zoom))
+}
+
+/** One zoom-button step, rounded to keep 0.1 arithmetic free of float drift. */
+export function stepZoom(zoom, direction) {
+  const current = clampZoom(zoom)
+  const delta = direction < 0 ? -ZOOM_STEP : ZOOM_STEP
+  return clampZoom(Math.round((current + delta) * 100) / 100)
+}
+
+/**
+ * Viewport patch that zooms around the viewport center, mirroring Excalidraw's
+ * own getStateForZoom so the point the user is looking at stays put.
+ */
+export function zoomViewportFor(appState, nextZoom) {
+  const zoom = clampZoom(nextZoom)
+  const current = clampZoom(appState?.zoom?.value)
+  const width = Number.isFinite(appState?.width) ? appState.width : 0
+  const height = Number.isFinite(appState?.height) ? appState.height : 0
+  const scrollX = Number.isFinite(appState?.scrollX) ? appState.scrollX : 0
+  const scrollY = Number.isFinite(appState?.scrollY) ? appState.scrollY : 0
+  const centerX = width / 2
+  const centerY = height / 2
+  return {
+    scrollX: scrollX + centerX / zoom - centerX / current,
+    scrollY: scrollY + centerY / zoom - centerY / current,
+    zoom: { value: zoom },
+  }
+}
+
+export function zoomPercent(zoom) {
+  return Math.round(clampZoom(zoom) * 100)
+}
+
 export function elementBounds(element) {
   let x0 = element.x
   let y0 = element.y

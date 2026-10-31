@@ -4,7 +4,7 @@ import * as jsxRuntime from 'react/jsx-runtime'
 import { ApiError, createCanvasApi, markPreviewOpened, pendingPreview } from './api.js'
 import { parseFileAddress, sessionFileAddress } from './address.js'
 import { downloadDraft, draftStorageKey, loadDraft, makeDraft, removeDraft, saveDraft } from './draft.js'
-import { checkPngBudget, filesSignature, originMoved, pickAppStatePatch } from './geometry.js'
+import { checkPngBudget, filesSignature, MAX_ZOOM, MIN_ZOOM, originMoved, pickAppStatePatch, stepZoom, zoomPercent, zoomViewportFor } from './geometry.js'
 import { CLIENT_CSS } from './styles.js'
 
 const NS = 'excalidrawCanvas'
@@ -50,6 +50,11 @@ const zh = {
   downloadExport: '下载导出文件',
   export: '导出',
   exportUnavailable: '画布尚未就绪，暂时无法导出',
+  zoomGroup: '画布缩放',
+  zoomIn: '放大',
+  zoomOut: '缩小',
+  fitToScreen: '适应屏幕',
+  zoomLevel: '缩放比例',
   offlineShort: '连接中断',
   cancel: '取消',
   empty: '这张图还没有可见元素',
@@ -97,6 +102,11 @@ const en = {
   downloadExport: 'Download exported file',
   export: 'Export',
   exportUnavailable: 'The canvas is not ready to export yet',
+  zoomGroup: 'Canvas zoom',
+  zoomIn: 'Zoom in',
+  zoomOut: 'Zoom out',
+  fitToScreen: 'Fit to screen',
+  zoomLevel: 'Zoom level',
   offlineShort: 'Disconnected',
   cancel: 'Cancel',
   empty: 'This diagram has no visible elements',
@@ -129,6 +139,9 @@ const ICON_PATHS = {
   pencil: ['M3 13l.7-2.8L11 2.9a1.2 1.2 0 0 1 1.7 1.7L5.4 11.9 3 13Z', 'm9.8 4.1 2.1 2.1'],
   refresh: ['M12.8 4.2A5.3 5.3 0 1 0 13.2 9.4', 'M12.8 2.6v3.2H9.6'],
   warning: ['M8 2.4 14 13H2L8 2.4Z', 'M8 6.4v3.1', 'M8 11.7v.1'],
+  minus: ['M3.2 8h9.6'],
+  plus: ['M8 3.2v9.6', 'M3.2 8h9.6'],
+  fit: ['M2.8 6.2V2.8h3.4', 'M9.8 2.8h3.4v3.4', 'M13.2 9.8v3.4H9.8', 'M6.2 13.2H2.8V9.8'],
 }
 
 function icon(name, size = 16) {
@@ -353,6 +366,7 @@ function CanvasBody(props) {
   const [conflict, setConflict] = React.useState(undefined)
   const [exportState, setExportState] = React.useState(undefined)
   const [exportMenuOpen, setExportMenuOpen] = React.useState(false)
+  const [zoom, setZoom] = React.useState(1)
   const [theme, setTheme] = React.useState(themeStore.get())
   const [reconnectTick, setReconnectTick] = React.useState(0)
 
@@ -382,6 +396,7 @@ function CanvasBody(props) {
   const lastRectRef = React.useRef(undefined)
   const exportInFlightRef = React.useRef(new Set())
   const exportMenuRef = React.useRef(null)
+  const scrollUnsubRef = React.useRef(undefined)
   const bootstrapRef = React.useRef(false)
   const lastRevisionRef = React.useRef(undefined)
   const reconnectAtRef = React.useRef(0)
@@ -910,6 +925,7 @@ function CanvasBody(props) {
       clearTimeout(draftTimerRef.current)
       clearTimeout(saveTimerRef.current)
       clearTimeout(retryTimerRef.current)
+      scrollUnsubRef.current?.()
       const api = apiRef.current
       if (api !== undefined) {
         const finish = async () => {
@@ -985,10 +1001,47 @@ function CanvasBody(props) {
   const handleExcalidrawApi = (api) => {
     excalidrawApiRef.current = api
     if (containerRef.current !== null) lastRectRef.current = containerRef.current.getBoundingClientRect()
+    scrollUnsubRef.current?.()
+    scrollUnsubRef.current = api.onScrollChange?.((_scrollX, _scrollY, nextZoom) => {
+      if (!mountedRef.current) return
+      setZoom(nextZoom?.value ?? 1)
+    })
+    setZoom(api.getAppState?.().zoom?.value ?? 1)
     setTimeout(() => {
       api.refresh?.()
       try { api.scrollToContent?.(undefined, { fitToContent: true }) } catch {}
     }, 0)
+  }
+
+  const applyZoom = (nextZoom) => {
+    const api = excalidrawApiRef.current
+    if (api === undefined) return
+    api.updateScene({
+      appState: zoomViewportFor(api.getAppState(), nextZoom),
+      captureUpdate: 'NEVER',
+    })
+  }
+
+  const zoomBy = (direction) => {
+    const api = excalidrawApiRef.current
+    if (api === undefined) return
+    const current = api.getAppState().zoom?.value ?? 1
+    const next = stepZoom(current, direction)
+    if (next !== current) applyZoom(next)
+  }
+
+  const fitToScreen = () => {
+    const api = excalidrawApiRef.current
+    if (api === undefined) return
+    const elements = api.getSceneElements()
+    if (elements.length === 0) {
+      // Nothing to frame: returning to 100% around the current center is less
+      // surprising than fitting an empty scene to an arbitrary corner.
+      applyZoom(1)
+      return
+    }
+    const reduceMotion = globalThis.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches === true
+    api.scrollToContent(elements, { fitToContent: true, animate: !reduceMotion })
   }
 
   const restoreDraft = () => {
@@ -1117,6 +1170,7 @@ function CanvasBody(props) {
     reconnectCountRef.current = 0
     void bootstrap()
   }
+  const zoomLevelLabel = `${zoomPercent(zoom)}%`
 
   const notices = []
   if (conflict !== undefined) {
@@ -1225,6 +1279,40 @@ function CanvasBody(props) {
         h('span', { className: 'dsh-excalidraw-status-label' }, statusLabel),
       ),
       h('div', { className: 'dsh-excalidraw-actions' },
+        h('div', {
+          className: 'dsh-excalidraw-zoom',
+          role: 'group',
+          'aria-label': t('zoomGroup'),
+        },
+          h('button', {
+            type: 'button',
+            className: 'dsh-excalidraw-button dsh-excalidraw-zoom-button',
+            title: t('zoomOut'),
+            'aria-label': t('zoomOut'),
+            disabled: zoom <= MIN_ZOOM,
+            onClick: () => zoomBy(-1),
+          }, icon('minus')),
+          h('span', {
+            className: 'dsh-excalidraw-zoom-value',
+            title: t('zoomLevel'),
+          }, zoomLevelLabel),
+          h('button', {
+            type: 'button',
+            className: 'dsh-excalidraw-button dsh-excalidraw-zoom-button',
+            title: t('zoomIn'),
+            'aria-label': t('zoomIn'),
+            disabled: zoom >= MAX_ZOOM,
+            onClick: () => zoomBy(1),
+          }, icon('plus')),
+          h('span', { className: 'dsh-excalidraw-zoom-divider', 'aria-hidden': 'true' }),
+          h('button', {
+            type: 'button',
+            className: 'dsh-excalidraw-button dsh-excalidraw-zoom-button',
+            title: t('fitToScreen'),
+            'aria-label': t('fitToScreen'),
+            onClick: fitToScreen,
+          }, icon('fit')),
+        ),
         h('div', {
           className: 'dsh-excalidraw-export',
           ref: exportMenuRef,
