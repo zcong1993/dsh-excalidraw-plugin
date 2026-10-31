@@ -102,14 +102,16 @@ remains in browser `sessionStorage`.
 ## Build and test
 
 ```bash
-bun install --ignore-scripts          # or npm install --ignore-scripts
+pnpm install                          # dependency manager, same as DSH profiles
 bun build:canvas                      # official lazy chunk + scoped CSS + fonts
 bun build:host                        # lib/host.js
 bun build                             # both, in the required order
 bun test
 ```
 
-`build:canvas` runs first because it recreates `lib/`; `build:host` then writes the Host bundle.
+Dependencies are pinned by `pnpm-lock.yaml` (pnpm, matching the DSH profile toolchain); Bun only runs
+the build and test scripts. `build:canvas` runs first because it recreates `lib/`; `build:host` then
+writes the Host bundle.
 The canvas chunk is served lazily by the Host asset route and is not part of `client.js`.
 
 ## Install

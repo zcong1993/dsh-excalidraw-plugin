@@ -259,7 +259,7 @@ loading → ready(read-only) → editing → saving → saved
 ## 8. 构建、测试与安装
 
 ```bash
-bun install --ignore-scripts
+pnpm install           # 依赖管理，与 DSH profile 保持一致
 bun run build          # build:canvas → build:host
 bun test
 ```
