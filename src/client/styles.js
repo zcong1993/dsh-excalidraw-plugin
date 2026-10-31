@@ -138,6 +138,13 @@ export const CLIENT_CSS = `
   width: 100%;
   height: 100%;
 }
+/* The official main menu only lists actions this embed disables (export, open,
+   save, reset); hiding its trigger keeps the canvas chrome unambiguous. */
+.dsh-excalidraw-plugin .excalidraw .main-menu-trigger { display: none !important; }
+/* In a narrow panel the official canvas uses its mobile layout, where the
+   drawing toolbar sits in a full-width island at the bottom. That island stays
+   empty while the canvas is read-only, so remove it until editing starts. */
+.dsh-excalidraw-plugin[data-editable="false"] .excalidraw .App-bottom-bar > .Island { display: none; }
 .dsh-excalidraw-footer {
   display: flex;
   justify-content: space-between;
