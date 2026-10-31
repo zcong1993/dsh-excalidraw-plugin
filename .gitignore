@@ -15,3 +15,6 @@ package-lock.json
 
 # Local pnpm store created when hardlinks are unavailable.
 .pnpm-store/
+
+# Git worktrees for parallel development (see AGENTS.md). Never commit them.
+.worktrees/
