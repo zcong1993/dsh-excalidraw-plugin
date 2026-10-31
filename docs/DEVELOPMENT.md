@@ -321,11 +321,13 @@ node scripts/verify-package.mjs .tmp/pkg/*.tgz
 
 每次发版的步骤：
 
-1. 合并 PR，确认 `main` 上是待发布的代码。
+1. 确认 `main` 上是待发布的代码，工作区干净。
 2. 改版本号：`package.json` 的 `version`，以及 `README.md` 中的安装版本与 `^x.y.z` 依赖（两处）。
-3. 提交并合并这次版本号变更。
+3. 提交后直接推 `main`：`git commit -am "chore(release): vX.Y.Z" && git push origin HEAD:main`。管理员推送会绕过分支保护，`main` 上这一步不等 CI。
 4. 打 tag 并推送：`git tag vX.Y.Z && git push origin vX.Y.Z`。
-5. workflow 会校验 tag 与 `package.json` 一致，然后跑 lint、`bun test --coverage`、build、`verify-build`、`pnpm pack` + `verify-package`，再 `npm publish --provenance` 并创建 GitHub Release。
+5. release workflow 就是这条路径的卡点：先校验 tag 与 `package.json` 一致，再跑 `tsc --noEmit`、`oxlint`、`bun test --coverage`、build、`verify-build`、`pnpm pack` + `verify-package`，并把打出的 tarball 装进全新 `DSH_HOME` 验证 `--dump-config` 含本插件；全部通过才 `npm publish --provenance` 并创建 GitHub Release。
+
+注意：发布提交直推 `main` 时不会等 `ci.yml` 的必需检查，所以 release workflow 必须自带完整卡点，任何一步失败都不得 publish。
 
 失败与回滚：
 

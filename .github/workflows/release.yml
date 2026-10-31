@@ -53,8 +53,9 @@ jobs:
             exit 1
           fi
 
-      - name: Lint and test
+      - name: Type-check, lint and test
         run: |
+          pnpm exec tsc --noEmit
           pnpm run lint
           bun test --coverage
 
@@ -69,6 +70,19 @@ jobs:
           mkdir -p .tmp/pkg
           pnpm pack --pack-destination .tmp/pkg
           node scripts/verify-package.mjs .tmp/pkg/*.tgz
+
+      # Release commits reach main without the CI gate, so the tarball itself
+      # must install into a fresh profile before anything is published.
+      - name: Install the packed bundle into a fresh profile
+        env:
+          DSH_HOME: ${{ runner.temp }}/dsh-home
+          npm_config_cache: ${{ runner.temp }}/npm-cache
+        run: |
+          npm install --global @deepseek-ai/dsh@0.2.1-rc.5
+          mkdir -p "$DSH_HOME"
+          dsh plugin --profile release add "$PWD"/.tmp/pkg/*.tgz
+          dsh --profile release --dump-config > dump-config.txt
+          grep -q "@zcong/dsh-excalidraw-plugin" dump-config.txt
 
       - name: Publish to npm with provenance
         run: npm publish --provenance --access public
