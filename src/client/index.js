@@ -1,9 +1,9 @@
 import React from 'react'
 import ReactDOM from 'react-dom'
 import * as jsxRuntime from 'react/jsx-runtime'
-import { ApiError, createCanvasApi, markPreviewOpened, pendingPreview, requestPath } from './api.js'
+import { ApiError, createCanvasApi, markPreviewOpened, pendingPreview } from './api.js'
 import { parseFileAddress, sessionFileAddress } from './address.js'
-import { DRAFT_MAX_BYTES, downloadDraft, draftStorageKey, loadDraft, makeDraft, removeDraft, saveDraft } from './draft.js'
+import { downloadDraft, draftStorageKey, loadDraft, makeDraft, removeDraft, saveDraft } from './draft.js'
 import { checkPngBudget, filesSignature, originMoved, pickAppStatePatch } from './geometry.js'
 import { CLIENT_CSS } from './styles.js'
 
@@ -186,14 +186,6 @@ function randomId() {
 
 function signatureOf(elements, files, appStatePatch) {
   return `${JSON.stringify(elements)}|${filesSignature(files)}|${JSON.stringify(appStatePatch)}`
-}
-
-function sameJson(left, right) {
-  return JSON.stringify(left) === JSON.stringify(right)
-}
-
-function textToBase64(text) {
-  return bytesToBase64(new TextEncoder().encode(text))
 }
 
 function bytesToBase64(bytes) {
@@ -918,7 +910,7 @@ function CanvasBody(props) {
     return () => window.removeEventListener('beforeunload', handler)
   }, [])
 
-  const handlePointerCapture = (event) => {
+  const handlePointerCapture = () => {
     const node = containerRef.current
     if (node === null) return
     const rect = node.getBoundingClientRect()

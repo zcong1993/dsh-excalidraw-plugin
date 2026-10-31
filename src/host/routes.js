@@ -1,8 +1,8 @@
 import { createReadStream } from 'node:fs'
-import { readFile, stat } from 'node:fs/promises'
+import { stat } from 'node:fs/promises'
 import { extname, join, normalize, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { currentVersionOf, MAX_BODY_BYTES, errorCode, messageFor, toError } from './service.js'
+import { currentVersionOf, MAX_BODY_BYTES, messageFor, toError } from './service.js'
 
 const ASSET_PREFIX = '/api/excalidraw-assets/'
 const ASSET_ROOT = fileURLToPath(new URL('./assets/', import.meta.url))
@@ -137,7 +137,7 @@ async function withOwner(ctx, req, res, handler) {
   }
 }
 
-async function serveAsset(req, res) {
+async function serveAsset(req, res, root = ASSET_ROOT) {
   if (req.method !== 'GET' && req.method !== 'HEAD') {
     res.writeHead(405, { Allow: 'GET, HEAD' })
     res.end()
@@ -163,8 +163,9 @@ async function serveAsset(req, res) {
     res.end()
     return
   }
-  const file = join(ASSET_ROOT, normalized)
-  if (!file.startsWith(ASSET_ROOT)) {
+  const file = join(root, normalized)
+  const rootPrefix = root.endsWith(sep) ? root : `${root}${sep}`
+  if (file !== root && !file.startsWith(rootPrefix)) {
     res.writeHead(404)
     res.end()
     return
@@ -373,4 +374,4 @@ export function applyRoutes(ctx, service) {
   }), 'excalidraw: static assets')
 }
 
-export { ASSET_ROOT, readBody, sendJson }
+export { ASSET_ROOT, readBody, sendJson, serveAsset }
