@@ -319,13 +319,16 @@ node scripts/verify-package.mjs .tmp/pkg/*.tgz
 2. Repository 填 `zcong1993/dsh-excalidraw-plugin`，Workflow filename 填 `release.yml`，Environment 留空。
 3. 之后只能在存在该 trusted publisher 的前提下由本 workflow 发布。
 
-每次发版的步骤：
+每次发版：
 
-1. 确认 `main` 上是待发布的代码，工作区干净。
-2. 改版本号：`package.json` 的 `version`，以及 `README.md` 中的安装版本与 `^x.y.z` 依赖（两处）。
-3. 提交后直接推 `main`：`git commit -am "chore(release): vX.Y.Z" && git push origin HEAD:main`。管理员推送会绕过分支保护，`main` 上这一步不等 CI。
-4. 打 tag 并推送：`git tag vX.Y.Z && git push origin vX.Y.Z`。
-5. release workflow 就是这条路径的卡点：先校验 tag 与 `package.json` 一致，再跑 `tsc --noEmit`、`oxlint`、`bun test --coverage`、build、`verify-build`、`pnpm pack` + `verify-package`，并把打出的 tarball 装进全新 `DSH_HOME` 验证 `--dump-config` 含本插件；全部通过才 `npm publish --provenance` 并创建 GitHub Release。
+```bash
+bun run release 0.4.0          # 版本号 + 提交 + 直推 main + 打 tag
+bun run release 0.4.0 --dry-run # 只看计划，不改仓库
+```
+
+`scripts/release.ts` 会校验版本号递增、工作区干净、`main` 与 `origin/main` 一致、tag 未存在，然后改三处版本号（`package.json` 与 `README.md` 的安装版本、`^x.y.z` 依赖），本地跑 `oxlint` + `bun test`，提交 `chore(release): vX.Y.Z`，直推 `main`，最后打并推 `vX.Y.Z` tag。手工等价步骤是：改版本号 → `git commit -am "chore(release): vX.Y.Z"` → `git push origin HEAD:main` → `git tag vX.Y.Z && git push origin vX.Y.Z`。
+
+release workflow 是这条路径的卡点：先校验 tag 与 `package.json` 一致，再跑 `tsc --noEmit`、`oxlint`、`bun test --coverage`、build、`verify-build`、`pnpm pack` + `verify-package`，并把打出的 tarball 装进全新 `DSH_HOME` 验证 `--dump-config` 含本插件；全部通过才 `npm publish --provenance` 并创建 GitHub Release。
 
 注意：发布提交直推 `main` 时不会等 `ci.yml` 的必需检查，所以 release workflow 必须自带完整卡点，任何一步失败都不得 publish。
 
