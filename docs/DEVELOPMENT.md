@@ -160,6 +160,24 @@ GET  /api/excalidraw-assets/*
 - 先保存 attachment，成功后才能返回附件/下载地址；附件保存失败不得报告成功。
 - 导出的源版本必须与结果版本一致。
 
+### 4.8 原生工具与诊断命令
+
+| 工具 | 作用 |
+| --- | --- |
+| `excalidraw_scene` | 对 `.excalidraw` 执行 `create` / `read` / `begin` / `update` / `end`；`begin` 锁定版本，`update` 用 `expectedVersion` 防止覆盖 |
+| `excalidraw_preview` | 在右侧边栏打开画布，初始只读 |
+| `excalidraw_export` | flush 用户草稿、锁定版本，由已连接页面渲染 PNG/SVG，校验后保存为附件并返回 60 秒下载链接 |
+
+路径相对 Session 工作目录，必须以 `.excalidraw` 结尾。读取默认返回有界摘要（`limit` 1–200，默认 50，支持 `offset` / `ids`），`format: "document"` 返回完整 JSON；未知顶层字段与 `appState` 字段原样保留。
+
+低层诊断命令：
+
+```text
+/excalidraw-scene {"action":"read","path":"diagram.excalidraw"}
+/excalidraw-export {"path":"diagram.excalidraw","format":"png","scale":2}
+```
+
+
 ## 5. Client 开发规范
 
 ### 5.1 渲染器注册
@@ -245,6 +263,7 @@ loading → ready(read-only) → editing → saving → saved
   - 导出前先预览；
   - 空图/超限/断线明确失败。
 - 工具不可用时，Skill 告诉用户启用插件，不绕道普通文件写入。
+- Host 启动时用 `ctx.skills.register()` 注册同一份 SKILL.md（构建时内联到 `lib/host.js`），使 npm 安装无需手动复制；项目级同名 skill 优先，可用于覆盖。
 
 ## 7. 官方运行库与资源
 
@@ -336,3 +355,17 @@ bun test
 - 官方 Excalidraw 升级时重点回归：`exportToSvg` 字体内嵌、`EXCALIDRAW_ASSET_PATH`、locale 加载、CSS 前缀、字体清单。
 - 任何改变权限、版本语义、flush 语义或导出安全校验的提交，必须同步更新本文与 `README.md`。
 - 文档与代码冲突时，以代码和实际运行结果为准，并在同一变更中修正文档。
+
+## 14. 运行限制
+
+| 项目 | 限制 |
+| --- | --- |
+| 源文件 / 导出体积 | 32 MiB |
+| 元素数量 | 50,000 |
+| 单次 patch | 200 个元素 |
+| 摘要分页 | 200 个元素（默认 50） |
+| 草稿恢复 | 2 MiB（UTF-16 估算） |
+| 保存 flush | 10 秒 |
+| 事务有效期 | 120 秒 |
+| PNG 像素 | 16,777,216 像素，单边 16,384 |
+| 用户改动摘要 | 100 条 / 约 32 KiB，超出明确截断 |
