@@ -74,7 +74,8 @@ pnpm publish --dry-run
 
 ## 验证清单
 
-- [ ] `bun test --coverage` 全绿，行覆盖不低于 70%。
+- [ ] `bun test --coverage` 全绿；**必须带 `--coverage`**，普通 `bun test` 不检查覆盖率门槛。
+- [ ] 全局行覆盖不低于 70%。门槛只统计测试导入的模块，`src/client/index.js` 等未导入代码不计入，不能用它证明全仓覆盖；改动这些区域时必须手验并在交付说明中注明。
 - [ ] `bun run build` 成功；`node --check lib/host.js lib/client.js lib/assets/canvas.js` 通过。
 - [ ] `pnpm exec tsc --noEmit`、`pnpm run lint` 通过。
 - [ ] `node scripts/verify-build.mjs` 通过；`pnpm pack` 后 `node scripts/verify-package.mjs` 通过。

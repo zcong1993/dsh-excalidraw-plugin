@@ -345,7 +345,8 @@ node scripts/verify-package.mjs .tmp/pkg/*.tgz
 
 提交前：
 
-- [ ] `bun test` 全绿。
+- [ ] `bun test --coverage` 全绿，全局行覆盖不低于 70%；普通 `bun test` 不检查门槛。
+- [ ] 覆盖率只统计被测试导入的模块；改动 `client/index.js` 等未覆盖区域时，交付说明中注明手验结果。
 - [ ] `bun run build` 成功，三个 JS 产物 `node --check` 通过。
 - [ ] 没有 debug hook、临时 token 文件、测试截图、临时 `.excalidraw` 混入源码提交。
 - [ ] `presentationMeta` / `output.schema` 全部 lossless。
