@@ -286,6 +286,7 @@ bun test
 - `build:canvas` 会重建 `lib/`，因此必须在 `build:host` 之前。
 - `build:host` 输出 `lib/host.js`；`build:canvas` 输出 `lib/client.js` 与 `lib/assets/*`。
 - 语法检查：`node --check lib/host.js lib/client.js lib/assets/canvas.js`。
+- 类型检查：`pnpm exec tsc --noEmit`（`tsconfig.json` 覆盖两个构建脚本）。
 - 测试：纯文档契约、假 fs 服务、草稿/几何、事务锁、flush、idempotency、导出验证。
 - 手工验收：真实 GUI 打开画布、中文、拖动/改字/自动保存、冲突、断线、PNG/SVG 导出。
 - 安装：`plugin_manager install_bundle <absolute-path>`；以 `application: applied` 和 `warnings` 判定生效。
