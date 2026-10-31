@@ -125,6 +125,13 @@ root.walkRules((rule) => {
       const first = selector.first
       if (first === undefined) return
       if (first.type === 'class' && first.value === 'dsh-excalidraw-plugin') return
+      // Excalidraw keeps its stacking and safe-area variables on :root. A
+      // descendant prefix would turn that into an unreachable selector, so the
+      // variables belong on the plugin root itself.
+      if (first.type === 'pseudo' && first.value === ':root') {
+        first.replaceWith(selectorParser.className({ value: 'dsh-excalidraw-plugin' }))
+        return
+      }
       if (first.type === 'tag' && (first.value === 'html' || first.value === 'body')) {
         first.value = 'div'
       }

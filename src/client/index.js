@@ -22,9 +22,15 @@ const zh = {
   done: '完成编辑',
   readOnly: '只读预览',
   locked: 'Agent 正在处理，画布暂时只读',
+  lockedShort: 'Agent 处理中',
   saving: '保存中…',
   saved: '已保存',
   unsaved: '未保存',
+  conflictShort: '版本冲突',
+  saveFailed: '保存失败',
+  loadFailedBody: '请检查文件是否仍然存在、Host 是否在线，然后重试。',
+  exportMenu: '导出为',
+  vector: '矢量',
   offline: '连接中断，修改已保留',
   conflict: '文件已被外部修改，自动保存已停止',
   conflictBody: '画布中还有未保存的修改。请先下载草稿，或确认丢弃草稿后加载最新文件。',
@@ -45,7 +51,6 @@ const zh = {
   export: '导出',
   exportUnavailable: '画布尚未就绪，暂时无法导出',
   offlineShort: '连接中断',
-  errorShort: '连接失效',
   cancel: '取消',
   empty: '这张图还没有可见元素',
   reload: '重新加载',
@@ -53,7 +58,6 @@ const zh = {
   storageUnavailable: '浏览器会话存储不可用，草稿仅保留在内存中，关闭页面后无法恢复。',
   sessionUnavailable: '当前 Session 不可编辑，或 Host 连接已断开。',
   unsupported: '这个文件不是 Excalidraw 源文件。',
-  zoom: '画布缩放与平移由官方 Excalidraw 处理；滚轮以画布中心为准。',
 }
 
 const en = {
@@ -65,9 +69,15 @@ const en = {
   done: 'Done editing',
   readOnly: 'Read-only preview',
   locked: 'The Agent is working; the canvas is temporarily read-only',
+  lockedShort: 'Agent working',
   saving: 'Saving…',
   saved: 'Saved',
   unsaved: 'Unsaved',
+  conflictShort: 'Version conflict',
+  saveFailed: 'Save failed',
+  loadFailedBody: 'Check that the file still exists and the Host is reachable, then retry.',
+  exportMenu: 'Export as',
+  vector: 'Vector',
   offline: 'Connection lost; changes are preserved',
   conflict: 'The file changed externally; autosave is stopped',
   conflictBody: 'The canvas still has unsaved changes. Download the draft, or confirm discarding it and load the latest file.',
@@ -88,7 +98,6 @@ const en = {
   export: 'Export',
   exportUnavailable: 'The canvas is not ready to export yet',
   offlineShort: 'Disconnected',
-  errorShort: 'Connection lost',
   cancel: 'Cancel',
   empty: 'This diagram has no visible elements',
   reload: 'Reload',
@@ -96,32 +105,84 @@ const en = {
   storageUnavailable: 'Browser session storage is unavailable; the draft lives only in memory and cannot survive closing the page.',
   sessionUnavailable: 'This Session is not editable, or the Host connection is gone.',
   unsupported: 'This file is not an Excalidraw source file.',
-  zoom: 'The official Excalidraw canvas owns zoom and pan; the wheel anchors to the canvas pointer.',
 }
 
 const STATUS_LABEL = {
   saved: 'saved',
   unsaved: 'unsaved',
   saving: 'saving',
-  offline: 'offline',
-  locked: 'locked',
-  conflict: 'conflict',
-  error: 'exportFailed',
+  offline: 'offlineShort',
+  locked: 'lockedShort',
+  conflict: 'conflictShort',
+  error: 'saveFailed',
 }
 
 function h(type, props, ...children) {
   return React.createElement(type, props, ...children)
 }
 
-function assetUrl(name) {
-  return new URL(`api/excalidraw-assets/${name}`, document.baseURI).href
+const ICON_PATHS = {
+  check: ['m3.2 8.4 3.1 3.1 6.5-7'],
+  chevron: ['m4.8 6.3 3.2 3.2 3.2-3.2'],
+  download: ['M8 2.5v7.2', 'm5.1 6.9 2.9 2.9 2.9-2.9', 'M3 12.8h10'],
+  info: ['M8 2.3a5.7 5.7 0 1 0 0 11.4A5.7 5.7 0 0 0 8 2.3Z', 'M8 7.4v3.2', 'M8 5.2v.1'],
+  pencil: ['M3 13l.7-2.8L11 2.9a1.2 1.2 0 0 1 1.7 1.7L5.4 11.9 3 13Z', 'm9.8 4.1 2.1 2.1'],
+  refresh: ['M12.8 4.2A5.3 5.3 0 1 0 13.2 9.4', 'M12.8 2.6v3.2H9.6'],
+  warning: ['M8 2.4 14 13H2L8 2.4Z', 'M8 6.4v3.1', 'M8 11.7v.1'],
+}
+
+function icon(name, size = 16) {
+  const paths = ICON_PATHS[name] ?? []
+  return h('svg', {
+    className: 'dsh-excalidraw-icon',
+    viewBox: '0 0 16 16',
+    width: size,
+    height: size,
+    fill: 'none',
+    stroke: 'currentColor',
+    strokeWidth: 1.5,
+    strokeLinecap: 'round',
+    strokeLinejoin: 'round',
+    'aria-hidden': 'true',
+    focusable: 'false',
+  }, ...paths.map((d) => h('path', { key: d, d })))
+}
+
+function Notice({ tone = 'info', iconName = 'info', title, body, role, children }) {
+  return h('div', {
+    className: 'dsh-excalidraw-notice',
+    'data-tone': tone,
+    role: role ?? (tone === 'danger' ? 'alert' : 'status'),
+  },
+    h('span', { className: 'dsh-excalidraw-notice-icon' }, icon(iconName)),
+    h('div', { className: 'dsh-excalidraw-notice-copy' },
+      title ? h('strong', { className: 'dsh-excalidraw-notice-title' }, title) : null,
+      body ? h('span', { className: 'dsh-excalidraw-notice-body' }, body) : null,
+    ),
+    children ? h('div', { className: 'dsh-excalidraw-notice-actions' }, children) : null,
+  )
 }
 
 function detectTheme() {
   const root = document.documentElement
-  if (root.dataset?.theme === 'dark') return 'dark'
-  if (root.classList?.contains('dark')) return 'dark'
+  const body = document.body
+  if (body?.hasAttribute?.('data-ds-dark-theme') || root?.hasAttribute?.('data-ds-dark-theme')) return 'dark'
+  if (root?.dataset?.theme === 'dark' || root?.dataset?.dsTheme === 'dark') return 'dark'
+  if (root?.classList?.contains('dark') || body?.classList?.contains('dark')) return 'dark'
+  // DSH exposes its resolved theme through the body background. Reading it keeps
+  // the canvas in step even when the shell changes themes without a plugin event.
+  const background = getComputedStyle(body ?? root).backgroundColor
+  const match = /^rgba?\(\s*(\d+)[,\s]+(\d+)[,\s]+(\d+)(?:[,/\s]+([\d.]+))?/.exec(background)
+  if (match !== null) {
+    const alpha = match[4] === undefined ? 1 : Number(match[4])
+    const [red, green, blue] = match.slice(1, 4).map(Number)
+    if (alpha > 0.1 && 0.2126 * red + 0.7152 * green + 0.0722 * blue < 96) return 'dark'
+  }
   return 'light'
+}
+
+function assetUrl(name) {
+  return new URL(`api/excalidraw-assets/${name}`, document.baseURI).href
 }
 
 function createAssets() {
@@ -982,29 +1043,29 @@ function CanvasBody(props) {
 
   if (phase === 'loading') {
     return h('div', { className: 'dsh-excalidraw-plugin dsh-excalidraw-state', role: 'status' },
-      h('div', { className: 'dsh-excalidraw-spinner', 'aria-hidden': 'true' }),
+      h('span', { className: 'dsh-excalidraw-spinner', 'aria-hidden': 'true' }),
       h('p', null, t('loading')),
     )
   }
 
   if (phase === 'error') {
     return h('div', { className: 'dsh-excalidraw-plugin dsh-excalidraw-state', role: 'alert' },
+      h('span', { className: 'dsh-excalidraw-state-icon' }, icon('warning', 20)),
       h('p', { className: 'dsh-excalidraw-error-title' }, t('loadFailed')),
-      h('p', { className: 'dsh-excalidraw-error-body' }, errorText || t('sessionUnavailable')),
+      h('p', { className: 'dsh-excalidraw-error-body' }, t('loadFailedBody')),
+      errorText ? h('code', { className: 'dsh-excalidraw-error-detail' }, errorText) : null,
       h('div', { className: 'dsh-excalidraw-actions' },
         h('button', {
           type: 'button',
-          className: 'dsh-excalidraw-button dsh-excalidraw-button-primary',
-          onClick: () => {
-            setReloadTick((value) => value + 1)
-            bootstrap()
-          },
-        }, t('retry')),
+          className: 'dsh-excalidraw-button',
+          'data-variant': 'primary',
+          onClick: () => void bootstrap(),
+        }, icon('refresh'), t('retry')),
         dirtyRef.current ? h('button', {
           type: 'button',
           className: 'dsh-excalidraw-button',
           onClick: downloadCurrentDraft,
-        }, t('downloadDraft')) : null,
+        }, icon('download'), t('downloadDraft')) : null,
       ),
     )
   }
@@ -1020,9 +1081,125 @@ function CanvasBody(props) {
     files: documentState?.files ?? {},
     scrollToContent: true,
   }
-  const statusLabel = t(STATUS_LABEL[status] ?? 'saved')
   const conflictCurrent = conflict?.currentVersion
   const canEdit = !working && !transactionLock && conflict === undefined && phase === 'ready'
+  const locked = working && !editable
+  const statusKey = locked ? 'locked' : status
+  const editableStatusLabel = t(STATUS_LABEL[statusKey] ?? 'saved')
+  const readOnlyStatusLabel =
+    locked
+      ? t('lockedShort')
+      : status === 'offline'
+        ? t('offlineShort')
+        : status === 'error'
+          ? t('saveFailed')
+          : status === 'conflict'
+            ? t('conflictShort')
+            : status === 'locked'
+              ? t('lockedShort')
+              : status === 'saving'
+                ? t('saving')
+                : status === 'unsaved'
+                  ? t('unsaved')
+                  : t('readOnly')
+  const statusLabel = editable ? editableStatusLabel : readOnlyStatusLabel
+  const statusTitle =
+    statusKey === 'locked'
+      ? t('locked')
+      : status === 'offline'
+        ? t('offline')
+        : status === 'conflict'
+          ? t('conflict')
+          : status === 'error'
+            ? statusText || t('sessionUnavailable')
+            : statusText || undefined
+  const reconnect = () => {
+    reconnectCountRef.current = 0
+    void bootstrap()
+  }
+
+  const notices = []
+  if (conflict !== undefined) {
+    notices.push(h(Notice, {
+      key: 'conflict',
+      tone: 'danger',
+      iconName: 'warning',
+      title: t('conflict'),
+      body: `${t('conflictBody')}${conflictCurrent ? ` (current ${conflictCurrent})` : ''}`,
+    },
+      h('button', { type: 'button', className: 'dsh-excalidraw-button', onClick: downloadCurrentDraft }, t('downloadDraft')),
+      h('button', { type: 'button', className: 'dsh-excalidraw-button', onClick: () => void loadLatest() }, t('loadLatest')),
+    ))
+  }
+  if (draftInfo !== undefined) {
+    notices.push(h(Notice, {
+      key: 'draft',
+      tone: draftInfo.matches ? 'info' : 'warn',
+      iconName: 'info',
+      title: draftInfo.matches ? t('draftFound') : t('draftStale'),
+      body: draftInfo.matches ? t('draftFoundBody') : t('draftStaleBody'),
+    },
+      draftInfo.matches
+        ? h('button', { key: 'restore', type: 'button', className: 'dsh-excalidraw-button', onClick: restoreDraft }, t('restoreDraft'))
+        : null,
+      h('button', { key: 'download', type: 'button', className: 'dsh-excalidraw-button', onClick: downloadCurrentDraft }, t('downloadDraft')),
+      h('button', { key: 'discard', type: 'button', className: 'dsh-excalidraw-button', onClick: discardDraft }, t('discardDraft')),
+    ))
+  }
+  if (draftTooLarge) {
+    notices.push(h(Notice, {
+      key: 'draft-size',
+      tone: 'warn',
+      iconName: 'warning',
+      body: t('draftTooLarge'),
+    },
+      h('button', { type: 'button', className: 'dsh-excalidraw-button', onClick: downloadCurrentDraft }, t('downloadDraft')),
+    ))
+  }
+  if (conflict === undefined && status === 'error') {
+    notices.push(h(Notice, {
+      key: 'error',
+      tone: 'danger',
+      iconName: 'warning',
+      title: t('saveFailed'),
+      body: statusText || t('sessionUnavailable'),
+    },
+      h('button', { type: 'button', className: 'dsh-excalidraw-button', onClick: reconnect }, icon('refresh'), t('retry')),
+    ))
+  } else if (conflict === undefined && status === 'offline') {
+    notices.push(h(Notice, {
+      key: 'offline',
+      tone: 'warn',
+      iconName: 'warning',
+      title: t('offlineShort'),
+      body: t('offline'),
+    },
+      h('button', { type: 'button', className: 'dsh-excalidraw-button', onClick: reconnect }, icon('refresh'), t('retry')),
+    ))
+  }
+
+  const exportToast = exportState === undefined
+    ? null
+    : h('div', {
+      className: 'dsh-excalidraw-toast',
+      'data-tone': exportState.kind === 'failed' ? 'danger' : 'neutral',
+      role: 'status',
+      'aria-live': 'polite',
+    },
+      exportState.kind === 'working'
+        ? h('span', { className: 'dsh-excalidraw-spinner', 'aria-hidden': 'true' })
+        : icon(exportState.kind === 'failed' ? 'warning' : 'check'),
+      h('span', { className: 'dsh-excalidraw-toast-body' },
+        exportState.kind === 'working'
+          ? `${t('exporting')} ${t('exportingHint')}`
+          : exportState.kind === 'done'
+            ? `${t('exported')}: ${exportState.name}`
+            : `${t('exportFailed')}: ${exportState.message}`,
+      ),
+      exportState.kind === 'done' && exportState.url !== undefined
+        ? h('a', { href: exportState.url, target: '_blank', rel: 'noopener noreferrer' }, t('downloadExport'))
+        : null,
+    )
 
   return h('div', {
     className: 'dsh-excalidraw-plugin',
@@ -1030,40 +1207,78 @@ function CanvasBody(props) {
     onPointerDownCapture: handlePointerCapture,
     'data-editable': editable ? 'true' : 'false',
     'data-working': working ? 'true' : 'false',
+    'data-dsh-theme': theme,
+    dir: document.documentElement.dir || 'ltr',
   },
     h('div', {
       className: 'dsh-excalidraw-toolbar',
-      'data-locked': working && !editable ? 'true' : 'false',
     },
-      h('div', { className: 'dsh-excalidraw-toolbar-title', role: 'status' },
-        h('span', {
-          className: 'dsh-excalidraw-dot',
-          'data-status': working && !editable ? 'locked' : status,
-          'aria-hidden': 'true',
-        }),
-        h('span', null, editable
-          ? statusLabel
-          : status === 'offline'
-            ? t('offlineShort')
-            : status === 'error'
-              ? t('errorShort')
-              : working ? t('locked') : t('readOnly')),
+      h('div', {
+        className: 'dsh-excalidraw-status',
+        'data-status': statusKey,
+        role: 'status',
+        ...(statusTitle === undefined || statusTitle === '' ? {} : { title: statusTitle }),
+      },
+        h('span', { className: 'dsh-excalidraw-status-icon', 'aria-hidden': 'true' },
+          h('span', { className: 'dsh-excalidraw-dot' }),
+        ),
+        h('span', { className: 'dsh-excalidraw-status-label' }, statusLabel),
       ),
       h('div', { className: 'dsh-excalidraw-actions' },
+        h('div', {
+          className: 'dsh-excalidraw-export',
+          ref: exportMenuRef,
+          onKeyDown: (event) => {
+            if (event.key !== 'Escape' || !exportMenuOpen) return
+            event.stopPropagation()
+            setExportMenuOpen(false)
+          },
+        },
+          h('button', {
+            type: 'button',
+            className: 'dsh-excalidraw-button',
+            'data-open': exportMenuOpen ? 'true' : 'false',
+            'aria-haspopup': 'menu',
+            'aria-expanded': exportMenuOpen ? 'true' : 'false',
+            disabled: runtime === undefined || exportState?.kind === 'working',
+            onClick: () => setExportMenuOpen((value) => !value),
+          }, icon('download'), t('export'), icon('chevron')),
+          exportMenuOpen
+            ? h('div', { className: 'dsh-excalidraw-menu', role: 'menu', 'aria-label': t('exportMenu') },
+              h('div', { className: 'dsh-excalidraw-menu-label' }, t('exportMenu')),
+              h('button', { type: 'button', role: 'menuitem', onClick: () => void exportCurrent('png', 2) },
+                h('span', null, 'PNG'),
+                h('span', { className: 'dsh-excalidraw-menu-hint' }, '2×')),
+              h('button', { type: 'button', role: 'menuitem', onClick: () => void exportCurrent('png', 3) },
+                h('span', null, 'PNG'),
+                h('span', { className: 'dsh-excalidraw-menu-hint' }, '3×')),
+              h('button', { type: 'button', role: 'menuitem', onClick: () => void exportCurrent('svg', 1) },
+                h('span', null, 'SVG'),
+                h('span', { className: 'dsh-excalidraw-menu-hint' }, t('vector'))),
+            )
+            : null,
+        ),
         editable
           ? h('button', {
             type: 'button',
-            className: 'dsh-excalidraw-button dsh-excalidraw-button-primary',
+            className: 'dsh-excalidraw-button',
+            'data-variant': 'primary',
             onClick: async () => {
               await commitNow()
               setEditableBoth(false)
               setStatusBoth(dirtyRef.current ? 'unsaved' : 'saved')
             },
-          }, t('done'))
+          }, icon('check'), t('done'))
           : h('button', {
             type: 'button',
-            className: 'dsh-excalidraw-button dsh-excalidraw-button-primary',
+            className: 'dsh-excalidraw-button',
+            'data-variant': 'primary',
             disabled: !canEdit,
+            ...(working || transactionLock
+              ? { title: t('locked') }
+              : conflict !== undefined
+                ? { title: t('conflict') }
+                : {}),
             onClick: async () => {
               const snapshot = await apiRef.current?.snapshot().catch(() => undefined)
               if (snapshot !== undefined && String(snapshot.version) !== versionRef.current) {
@@ -1078,86 +1293,11 @@ function CanvasBody(props) {
               setStatusBoth(dirtyRef.current ? 'unsaved' : 'saved')
               setTimeout(() => excalidrawApiRef.current?.refresh?.(), 0)
             },
-          }, t('edit')),
-        h('button', {
-          type: 'button',
-          className: 'dsh-excalidraw-button',
-          onClick: () => {
-            if (status === 'error' || status === 'offline') {
-              reconnectCountRef.current = 0
-              void bootstrap()
-              return
-            }
-            void refreshFromHost()
-          },
-        }, t('reload')),
-        h('div', { className: 'dsh-excalidraw-export', ref: exportMenuRef },
-          h('button', {
-            type: 'button',
-            className: 'dsh-excalidraw-button',
-            'aria-haspopup': 'menu',
-            'aria-expanded': exportMenuOpen ? 'true' : 'false',
-            onClick: () => setExportMenuOpen((value) => !value),
-          }, t('export')),
-          exportMenuOpen
-            ? h('div', { className: 'dsh-excalidraw-menu', role: 'menu' },
-              h('button', { type: 'button', role: 'menuitem', onClick: () => void exportCurrent('png', 2) }, 'PNG 2×'),
-              h('button', { type: 'button', role: 'menuitem', onClick: () => void exportCurrent('png', 3) }, 'PNG 3×'),
-              h('button', { type: 'button', role: 'menuitem', onClick: () => void exportCurrent('svg', 1) }, 'SVG'),
-            )
-            : null,
-        ),
+          }, icon('pencil'), t('edit')),
       ),
     ),
-    draftInfo !== undefined
-      ? h('div', { className: 'dsh-excalidraw-banner', 'data-tone': draftInfo.matches ? 'info' : 'warn', role: 'status' },
-        h('div', null,
-          h('strong', null, draftInfo.matches ? t('draftFound') : t('draftStale')),
-          h('span', null, ` ${draftInfo.matches ? t('draftFoundBody') : t('draftStaleBody')}`),
-        ),
-        h('div', { className: 'dsh-excalidraw-actions' },
-          draftInfo.matches
-            ? h('button', { type: 'button', className: 'dsh-excalidraw-button', onClick: restoreDraft }, t('restoreDraft'))
-            : null,
-          h('button', { type: 'button', className: 'dsh-excalidraw-button', onClick: downloadCurrentDraft }, t('downloadDraft')),
-          h('button', { type: 'button', className: 'dsh-excalidraw-button', onClick: discardDraft }, t('discardDraft')),
-        ),
-      )
-      : null,
-    draftTooLarge
-      ? h('div', { className: 'dsh-excalidraw-banner', 'data-tone': 'warn', role: 'alert' },
-        h('span', null, t('draftTooLarge')),
-        h('button', { type: 'button', className: 'dsh-excalidraw-button', onClick: downloadCurrentDraft }, t('downloadDraft')),
-      )
-      : null,
-    conflict !== undefined
-      ? h('div', { className: 'dsh-excalidraw-banner', 'data-tone': 'danger', role: 'alert' },
-        h('div', null,
-          h('strong', null, t('conflict')),
-          h('span', null, ` ${t('conflictBody')}${conflictCurrent ? ` (current ${conflictCurrent})` : ''}`),
-        ),
-        h('div', { className: 'dsh-excalidraw-actions' },
-          h('button', { type: 'button', className: 'dsh-excalidraw-button', onClick: downloadCurrentDraft }, t('downloadDraft')),
-          h('button', { type: 'button', className: 'dsh-excalidraw-button', onClick: loadLatest }, t('loadLatest')),
-        ),
-      )
-      : null,
-    exportState !== undefined
-      ? h('div', { className: 'dsh-excalidraw-banner', 'data-tone': exportState.kind === 'failed' ? 'danger' : 'info', role: 'status' },
-        exportState.kind === 'working'
-          ? h('span', null, `${t('exporting')} ${t('exportingHint')}`)
-          : exportState.kind === 'done'
-            ? h('div', { className: 'dsh-excalidraw-actions' },
-              h('span', null, `${t('exported')}: ${exportState.name}`),
-              exportState.url === undefined ? null : h('a', {
-                className: 'dsh-excalidraw-button',
-                href: exportState.url,
-                target: '_blank',
-                rel: 'noopener noreferrer',
-              }, t('downloadExport')),
-            )
-            : h('span', null, `${t('exportFailed')}: ${exportState.message}`),
-      )
+    notices.length > 0
+      ? h('div', { className: 'dsh-excalidraw-notices' }, ...notices)
       : null,
     h('div', { className: 'dsh-excalidraw-canvas', ref: canvasHostRef },
       runtime !== undefined && documentState !== undefined
@@ -1189,10 +1329,7 @@ function CanvasBody(props) {
         })
         : null,
     ),
-    h('div', { className: 'dsh-excalidraw-footer' },
-      h('span', null, t('zoom')),
-      statusText ? h('span', { className: 'dsh-excalidraw-status-text' }, statusText) : null,
-    ),
+    exportToast,
   )
 }
 
