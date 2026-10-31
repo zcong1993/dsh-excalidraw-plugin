@@ -34,6 +34,24 @@ pnpm publish --dry-run
 
 改动 Client 后必须刷新页面（桌面客户端需完全退出重开）；仅重载 Host 不会替换浏览器 bundle。
 
+## 分支与 worktree
+
+所有改动都在独立 worktree 里完成，不要直接在主工作区改代码。
+
+- worktree 统一放 `.worktrees/<名称>`，该目录已在 `.gitignore` 中；名称用短横线，分支里的 `/` 换成 `-`（`feat/flush-race` → `.worktrees/feat-flush-race`）。
+- 从最新 `origin/main` 开分支，不要基于本地 `main`：
+
+```bash
+git fetch origin
+git worktree add .worktrees/feat-flush-race -b feat/flush-race origin/main
+cd .worktrees/feat-flush-race
+pnpm install   # 每个 worktree 独立 node_modules，不能复用主工作区的
+```
+
+- `node_modules/`、`lib/`、`.tmp/` 在每个 worktree 内各自独立；构建、测试、`verify-build` 都在对应 worktree 里跑。
+- 收尾用 `git worktree remove .worktrees/feat-flush-race`（有未提交改动时先处理，必要时 `--force`）；只 `rm -rf` 会留下失效记录，用 `git worktree prune` 清理。
+- 长期不用的 worktree 及时删除，保持 `git worktree list` 干净。
+
 ## 必须遵守的不变量
 
 **文件与版本**
