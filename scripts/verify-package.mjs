@@ -75,7 +75,7 @@ if (pkg !== undefined) {
   check(pkg.exports?.['.'] === './lib/host.js', 'the root export does not point at lib/host.js')
   check(pkg.exports?.['./client'] === './lib/client.js', 'the client export is missing')
   check(pkg.dsh?.bundle?.patch === './cordis.patch.yml', 'the bundle patch declaration is missing')
-  check(typeof pkg.engines?.dsh === 'string', 'engines.dsh is not pinned')
+  check(!Object.hasOwn(pkg.engines ?? {}, 'dsh'), 'engines.dsh must stay unset; an exact pin rejects every DSH upgrade')
   check(Array.isArray(pkg.files) && pkg.files.includes('lib'), 'package files does not include lib')
 }
 
