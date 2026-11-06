@@ -302,7 +302,7 @@ node scripts/verify-package.mjs .tmp/pkg/*.tgz
 - 覆盖率：`bunfig.toml` 设 `coverageThreshold = 0.7`，以行覆盖为准；Bun 只统计被测试导入的模块，未导入的 `client/index.js` 不计入，因此门槛不等于全仓真实覆盖。
 - `tests/support/host-fixture.js` 提供共享的假 fs、假 ctx 与导出握手，新测试优先复用它。
 - `scripts/verify-build.mjs` 检查：CSS 每条规则以 `.dsh-excalidraw-plugin` 开头、无远程 `url()`/`@import`、`@font-face` 全部指向 `./fonts/`；字体 ≥234 且与 manifest 一致；`zh-CN`/`en` locale；license/notices；共享 React 注入与 `EXCALIDRAW_ASSET_PATH`；无 source map；产物体积预算。
-- `scripts/verify-package.mjs` 检查 tarball 只含 `package.json`/README/LICENSE/`lib`/`locale`/`icon.svg`/`cordis.patch.yml`，并校验必需文件、字体数量、locale、`exports`/`dsh.bundle`/`engines.dsh`。
+- `scripts/verify-package.mjs` 检查 tarball 只含 `package.json`/README/LICENSE/`lib`/`locale`/`icon.svg`/`cordis.patch.yml`，并校验必需文件、字体数量、locale、`exports`/`dsh.bundle`，并断言 `engines.dsh` 未声明。
 - CI（`.github/workflows/ci.yml`）分四个 job：`quality`（tsc + oxlint）、`test`（覆盖率 + lcov artifact + Codecov 上传）、`bundle`（build + verify + pack + verify + tarball artifact）、`install-smoke`（在全新 `DSH_HOME` 中用 `@deepseek-ai/dsh@0.2.1-rc.5` 执行 `dsh plugin add`，并断言 `--dump-config` 含插件层）。
 - Codecov 用 `use_oidc: true` 上传，不保存 token；`fail_ci_if_error: false`，外部服务抖动不阻塞 PR。`codecov.yml` 的 project 门槛与 `bunfig.toml` 一致为 70%，patch 状态暂设 `informational`，等浏览器回归补齐后再考虑转成硬门槛。
 - 手工验收：真实 GUI 打开画布、中文、拖动/改字/自动保存、冲突、断线、PNG/SVG 导出。
@@ -403,6 +403,7 @@ release workflow 是这条路径的卡点：先校验 tag 与 `package.json` 一
 
 - 升级 DSH、Cordis 或 Excalidraw 后，先用 `cordis_inspect_list` / `cordis_inspect_query` 核对 Service、Slot、Event、工具 schema，再改代码。
 - 官方 Excalidraw 升级时重点回归：`exportToSvg` 字体内嵌、`EXCALIDRAW_ASSET_PATH`、locale 加载、CSS 前缀、字体清单。
+- `package.json` 不声明 `engines.dsh`。DSH 按 semver 范围校验该字段，而单个版本号（如 `0.2.1-rc.5`）等价于精确匹配 `=0.2.1-rc.5`，因此每次 DSH 升级都会在安装与加载时被判定不兼容并拒绝；去掉字段后 DSH 不再做版本门禁，兼容性改由真实 GUI 回归和 API 核对保证。
 - 任何改变权限、版本语义、flush 语义或导出安全校验的提交，必须同步更新本文与 `README.md`。
 - 文档与代码冲突时，以代码和实际运行结果为准，并在同一变更中修正文档。
 

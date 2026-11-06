@@ -3,9 +3,6 @@
   "version": "0.4.1",
   "description": "Excalidraw canvas for DeepSeek Harness: natural-language diagrams, sidebar editing, PNG/SVG export.",
   "type": "module",
-  "engines": {
-    "dsh": "0.2.1-rc.5"
-  },
   "exports": {
     ".": "./lib/host.js",
     "./client": "./lib/client.js",
